@@ -8,7 +8,6 @@ This repository is designed for studying various topics related to Linux, Ansibl
 - [Introduction](#introduction)
 - [Topics Covered](#topics-covered)
 - [Getting Started](#getting-started)
-- [License](#license)
 
 ## <a id="introduction"></a>Introduction
 
@@ -40,7 +39,3 @@ To get started with this repository, follow these steps:
 4. Experiment, practice, and modify the code to gain a deeper understanding of the concepts.
 
 Feel free to explore these resources, adapt them to your needs, and contribute new content to enrich the repository.
-
-## <a id="license"></a>License
-
-The contents of this repository are licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute the code and resources within this repository for educational and non-commercial purposes. See the [LICENSE](LICENSE) file for more details.
