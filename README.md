@@ -20,12 +20,8 @@ The repository covers a wide range of topics, including but not limited to:
 
 - Ansible automation and orchestration
 - Docker containerization and orchestration
-- DevOps best practices
-- Cloud computing and infrastructure management
 - Linux system administration
-- Networking concepts and protocols
-- Web application security
-- And much more!
+
 
 ## <a id="getting-started"></a>Getting Started
 
