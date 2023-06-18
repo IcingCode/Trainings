@@ -1,6 +1,6 @@
 ---
   - name: install and configure systems
-    hosts: all
+    hosts: remote
     become: true
     roles:
       - { role: debian, when: ansible_os_family == "Debian" }
