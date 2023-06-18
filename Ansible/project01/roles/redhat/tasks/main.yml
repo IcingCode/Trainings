@@ -124,3 +124,51 @@
     mode: '0755'
     owner: oracle
     group: oinstall
+# Create file structure
+- name: Copy .bash_profile file
+  template:
+    src: templates/bash_profile.j2
+    dest: /home/oracle/.bash_profile
+    owner: oracle
+    group: oracle
+    mode: '0644'
+- name: Copy .bashrc file
+  template:
+    src: templates/bashrc.j2
+    dest: /home/oracle/.bashrc
+    owner: oracle
+    group: oracle
+    mode: '0644'
+- name: Create /etc/oraInst.loc
+  lineinfile:
+    path: /etc/oraInst.loc
+    line: "inventory_loc=/u01/app/oracle/oraInventory"
+    create: yes
+    owner: oracle
+    group: oracle
+    mode: '0644'
+
+- name: Add inst_group to /etc/oraInst.loc
+  lineinfile:
+    path: /etc/oraInst.loc
+    line: "inst_group=oinstall"
+    insertafter: "inventory_loc=/u01/app/oracle/oraInventory"
+    create: no
+    owner: oracle
+    group: oinstall
+    mode: '0644'
+
+# - name: Generate /etc/oraInst.loc
+#   template:
+#     src: oraInst.loc.j2
+#     dest: /etc/oraInst.loc
+#     owner: oracle
+#     group: oinstall
+#     mode: '0644'
+- name: Copy 99-oracle.conf to /etc/security/limits.d
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/99-oracle.conf
+    src: files/etc/security/limits.d/99-oracle.conf
+    owner: root
+    group: root
+    mode: 0640
