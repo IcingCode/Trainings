@@ -26,7 +26,6 @@
       - openssl
       - make 
     ignore_errors: true
-
 # User and groups tasks   
 - name: Create oinstall group
   group:
@@ -45,3 +44,59 @@
     password: $6$28HZxmElEYp37PJD$xNvhxWcMsvFoikTEgQw139A/LZVi.8.Dg3utZrlHbbtTnkYKrk0GmMcwsCqBtwsP/FeKJm9CrWj6OCYEIE3Xs0
     create_home: true
     state: present
+# Directory Tasks
+- name: Create /home/oracle/dba if it does not exist
+  ansible.builtin.file:
+    path: /home/oracle/dba
+    state: directory
+    mode: '0755'
+    owner: oracle
+    group: oinstall
+
+- name: Create /home/oracle/log if it does not exist
+  ansible.builtin.file:
+    path: /home/oracle/log
+    state: directory
+    mode: '0755'
+    owner: oracle
+    group: oinstall
+
+- name: Create /u01 if it does not exist
+  ansible.builtin.file:
+    path: /u01
+    state: directory
+    mode: '0755'
+    owner: root
+    group: oinstall
+
+- name: Create $LOG_BASE (/u01/logs) if it does not exist
+  ansible.builtin.file:
+    path: /u01/logs
+    state: directory
+    mode: '0755'
+    owner: oracle
+    group: oinstall
+
+- name: Create $ORACLE_BASE (/u01/app/oracle) if it does not exist
+  ansible.builtin.file:
+    path: /u01/app/oracle
+    state: directory
+    mode: '0755'
+    owner: oracle
+    group: oinstall
+
+- name: Create $ORACLE_HOME(/u01/app/oracle/product/{{ oracle_version }}/fmw) if it does not exist
+  ansible.builtin.file:
+    path: '/u01/app/oracle/product/{{ oracle_version }}/fmw'
+    state: directory
+    mode: '0755'
+    owner: oracle
+    group: oinstall
+
+- name: Create $JAVA_BASE (/u01/app/oracle/product/{{ oracle_version }}/fmwjava) if it does not exist
+  ansible.builtin.file:
+    path: /u01/app/oracle/product/{{ oracle_version }}/fmwjava/
+    state: directory
+    mode: '0755'
+    owner: oracle
+    group: oinstall
