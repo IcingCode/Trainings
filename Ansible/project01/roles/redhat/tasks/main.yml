@@ -50,3 +50,21 @@
       - xorg-x11-xauth
       - xterm
     ignore_errors: true
+# User and groups tasks   
+- name: Create oinstall group
+  group:
+    name: oinstall
+    gid: 105
+    state: present
+
+- name: Add user oracle
+  ansible.builtin.user:
+    name: oracle
+    shell: /bin/bash
+    uid: 201
+    groups: oinstall
+    expires: -1
+    home: /home/oracle
+    password: $6$28HZxmElEYp37PJD$xNvhxWcMsvFoikTEgQw139A/LZVi.8.Dg3utZrlHbbtTnkYKrk0GmMcwsCqBtwsP/FeKJm9CrWj6OCYEIE3Xs0
+    create_home: true
+    state: present
