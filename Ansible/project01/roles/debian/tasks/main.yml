@@ -148,3 +148,13 @@
     owner: root
     group: root
     mode: 0640
+# Update sysctl settings
+- name: Update sysctl.conf file
+  lineinfile:
+    dest: /etc/sysctl.conf
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - "net.core.rmem_max=2097152"
+    - "net.core.wmem_max=2097152"
+  notify: restart_sysctl
