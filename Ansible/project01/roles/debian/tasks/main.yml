@@ -31,7 +31,7 @@
 - name: Create oinstall group
   group:
     name: oinstall
-    gid: 105
+    gid: 1005
     state: present
 
 - name: Add user oracle
