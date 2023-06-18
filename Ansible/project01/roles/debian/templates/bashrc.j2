@@ -1,0 +1,79 @@
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+
+# User specific environment
+if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
+then
+    PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+fi
+export PATH
+
+# Uncomment the following line if you don't like systemctl's auto-paging feature:
+# export SYSTEMD_PAGER=
+
+# User specific aliases and functions
+
+# {{ domain_name }} - ALL Servers
+alias start_{{ application_name }}_ALL='/u01/app/oracle/product/{{ oracle_version }}/fmw/oracle_common/common/bin/wlst.sh /u01/app/oracle/shared/mw_domains/{{ domain_name }}/bin/start_{{ application_name }}_ALL.py'
+alias stop_{{ application_name }}_ALL='/u01/app/oracle/product/{{ oracle_version }}/fmw/oracle_common/common/bin/wlst.sh /u01/app/oracle/shared/mw_domains/{{ domain_name }}/bin/stop_{{ application_name }}_ALL.py'
+alias status_{{ application_name }}_ALL='/u01/app/oracle/product/{{ oracle_version }}/fmw/oracle_common/common/bin/wlst.sh /u01/app/oracle/shared/mw_domains/{{ domain_name }}/bin/status_{{ application_name }}_ALL.py'
+
+# {{ domain_name }} - ADMIN Server
+alias start_{{ application_name }}_ADM='/u01/app/oracle/product/{{ oracle_version }}/fmw/oracle_common/common/bin/wlst.sh /u01/app/oracle/shared/mw_domains/{{ domain_name }}/bin/start_{{ application_name }}_ADM.py'
+alias stop_{{ application_name }}_ADM='/u01/app/oracle/product/{{ oracle_version }}/fmw/oracle_common/common/bin/wlst.sh /u01/app/oracle/shared/mw_domains/{{ domain_name }}/bin/stop_{{ application_name }}_ADM.py'
+
+# {{ domain_name }} - Log files
+alias log_ADM_{{ application_name }}='cd /u01/logs/mw_domains/{{ domain_name }}/servers/ADM_{{ application_name }}/logs'
+alias log_MS_SVC_{{ application_name }}='cd /u01/logs/mw_domains/{{ domain_name }}/servers/MS_SVC_{{ application_name }}/logs'
+
+
+
+alias log_MS_SVC_{{ application2_name }}='cd /u01/logs/mw_domains/{{ domain_name }}/servers/MS_SVC_{{ application2_name }}/logs'
+
+
+alias log_MS_SVC_{{ application3_name }}='cd /u01/logs/mw_domains/{{ domain_name }}/servers/MS_SVC_WS/logs'
+
+# OHS Stop/Start
+alias stopohs='/home/oracle/bin/wt01/stop_ohs_wt01.sh'
+alias startohs='/home/oracle/bin/wt01/start_ohs_wt01.sh'
+
+# OHS wt01 config
+alias wt01_conf='cd /u01/app/oracle/admin/mw_domains/WT01_DOMAIN/config/fmwconfig/components/OHS/wt01'
+
+# OHS wt01 log files
+alias wt01_log='cd /u01/logs/mw_domains/WT01_DOMAIN/logs'
+
+# NodeManager
+alias stopnm='/home/oracle/bin/nm/stop_nm.sh'
+alias startnm='/home/oracle/bin/nm/start_nm.sh'
+
+# Nodemanager Webtier
+alias stopnmwebtier='/home/oracle/bin/wt01/stop_nm_wt01.sh'
+alias startnmwebtier='/home/oracle/bin/wt01/start_nm_wt01.sh'
+
+# Keystore
+alias keystore='cd /u01/app/oracle/shared/keystores/{{ domain_name }}'
+
+# Set folders to purple
+export PS1='\[\e[1;31m\]GAT \[\e[1;32m\]\u@\h \[\e[1;34m\]\W \[\e[0m\] $ '
+
+echo
+echo "*** Shortkeys ***"
+echo Type \'start_{{ application_name }}_ALL\' or \'stop_{{ application_name }}_ALL\'to start or stop current ORACLE_HOME software stack
+echo Type \'status_{{ application_name }}_ALL\' to check the status of current ORACLE_HOME software stack
+echo Type \'start_{{ application_name }}_ADM\' or \'stop_{{ application_name }}_ADM\'to start or stop current Admin server
+echo Type \'startnm\' or \'stopnm\'to start or stop the node manager
+echo Type \'startnmwebtier\' or \'stopnmwebtier\'to start or stop the webtier node manager
+echo Type \'startohs\' or \'stopohs\'to start or stop the Oracle HTTP Server
+echo Type \'log_ADM_{{ application_name }}\' to go to {{ application_name }} Weblogic admin logs
+echo Type \'log_MS_SVC_{{ application_name }}\' to go to {{ application_name }} Managed server logs
+echo Type \'log_MS_SVC_{{ application2_name }}\' to go to {{ application_name }} report Managed server logs
+echo Type \'log_MS_SVC_WS\' to go to {{ application_name }} Webservice Managed server logs
+echo Type \'wt01_log\' to go to OHS webtier logs
+echo Type \'wt01_conf\' to go to OHS webtier configuration directory
+echo Type \'keystore\' to go to {{ application_name }} keystore directory
+echo
