@@ -2,7 +2,6 @@
   ansible.builtin.set_fact:
     mydistribution: "{{ 'centos' if (ansible_distribution == 'Rocky') else (ansible_distribution | lower) }}"
   
-
 - name: Add signing key
   ansible.builtin.rpm_key:
     key: "https://download.docker.com/linux/{{ mydistribution }}/gpg"
@@ -19,19 +18,51 @@
     gpgkey: "https://download.docker.com/linux/{{ mydistribution }}/gpg"
   when: ansible_os_family == "RedHat"
 
-- name: Install Docker
-  ansible.builtin.yum:
+- name: install prerequisites for Docker repository
+  ansible.builtin.apt:
+    pkg:
+      - ca-certificates
+      - curl
+      - gnupg2
+      - lsb-release
+  when: ansible_os_family == "Debian"
+
+- name: add docker apt key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: add docker apt repo
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: install docker and its dependencies
+  ansible.builtin.package:
     name:
       - docker-ce
       - docker-ce-cli
       - containerd.io
       - docker-compose-plugin
-    state: latest
-    update_cache: true
-  when: ansible_os_family == "RedHat"
+    state: present
 
-- name: Start Docker
+- name: start and enable Docker
   ansible.builtin.service:
-    name: "docker"
-    enabled: true
+    name: docker
     state: started
+    enabled: yes
+
+- name: start and enable containerd daemon
+  ansible.builtin.service:
+    name: containerd
+    state: started
+    enabled: yes
+
+- name: adding user vagrant to docker group
+  ansible.builtin.user:
+    name: vagrant
+    groups: docker
+    append: true
