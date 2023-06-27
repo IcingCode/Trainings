@@ -68,6 +68,108 @@
     password: $6$28HZxmElEYp37PJD$xNvhxWcMsvFoikTEgQw139A/LZVi.8.Dg3utZrlHbbtTnkYKrk0GmMcwsCqBtwsP/FeKJm9CrWj6OCYEIE3Xs0
     create_home: true
     state: present
+
+- name: Add user vagrant
+  ansible.builtin.user:
+    name: vagrant
+    shell: /usr/bin/zsh
+    home: /home/vagrant
+    password: $6$dOoodFWPv/eaWxVL$s7SQ0.EIbKIUuNs0d1H6K4OwLbob3KeK3PuYgpRF3aTY7GnpaMRlU0X5kG1IWTbhyhrgsHXpRx98OCnF6H7/H0
+    create_home: true
+    state: present
+
+- name: Add sudoer rule for ansible user
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/vagrant
+    src: etc/sudoers.d/vagrant
+    owner: root
+    group: root
+    mode: 0440
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Check if .zshrc exists
+  stat:
+    path: /home/vagrant/.zshrc
+  register: zshrc_result
+
+- name: Check if .oh-my-zsh exists
+  stat:
+    path: /home/vagrant/.oh-my-zsh
+  register: oh_my_zsh_result
+
+- name: Cloning oh-my-zsh
+  git:
+    repo: https://github.com/robbyrussell/oh-my-zsh
+    dest: /home/vagrant/.oh-my-zsh
+  when: not oh_my_zsh_result.stat.exists
+
+- name: Set Correct ownwership and permission to .oh-my-zsh
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh
+    owner: vagrant
+    group: vagrant
+    mode: 0755
+    recurse: true
+
+- name: Copy .zshrc to home folder
+  ansible.builtin.copy:
+    dest: /home/vagrant/.zshrc
+    src: .zshrc
+    owner: vagrant
+    group: vagrant
+    mode: 0440
+
+- name: Check if zsh-autosuggestions exists
+  stat:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+  register: stat_zsh_autosuggestions_result
+
+- name: Clone zsh-autosuggestions github repository
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+    dest: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    clone: true
+    update: true
+    force: true
+  when: not stat_zsh_autosuggestions_result.stat.exists
+
+- name: Set Correct ownwership and permission to zsh-autosuggestions
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    owner: vagrant
+    group: vagrant
+    mode: 0755
+    recurse: true
+
+- name: Set Shell to zsh
+  user:
+    name: vagrant
+    shell: /usr/bin/zsh
+
+- name: Set a message of the day
+  ansible.builtin.copy:
+    dest: /etc/motd
+    src: motd.j2
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Set a login banner
+  ansible.builtin.copy:
+    dest: "{{ item }}"
+    src: etc/issue
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - /etc/issue.net
+
+- name: Make sure rsyslog is started and enabled
+  ansible.builtin.service:
+    name: rsyslog
+    state: started
+    enabled: true
+
 # Directory Tasks
 - name: Create /home/oracle/dba if it does not exist
   ansible.builtin.file:
@@ -182,3 +284,40 @@
     - "net.core.rmem_max=2097152"
     - "net.core.wmem_max=2097152"
   notify: restart_sysctl
+
+- name: Ensure dnf-automatic is running and enabled on boot.
+  ansible.builtin.service:
+    name: dnf-automatic-install.timer
+    state: started
+    enabled: yes
+
+- name: Check to see if we need a reboot
+  command: needs-restarting -r
+  register: result
+  ignore_errors: true
+
+- name: Display result
+  debug:
+    var: result.rc
+
+- name: Reboot the server
+  tags: reboot
+  become_user: root
+  shell: "sleep 5 && reboot"
+  async: 1
+  poll: 0
+  when: result.rc == 1
+
+- name: Wait for the reboot to complete if there was a change.
+  wait_for_connection:
+    connect_timeout: 10
+    sleep: 5
+    delay: 5
+    timeout: 300
+  when: result.rc == 1
+
+- name: Check the Uptime of the servers
+  shell: "uptime"
+  register: Uptime
+
+- debug: var=Uptime

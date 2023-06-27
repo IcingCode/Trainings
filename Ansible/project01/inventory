@@ -1,9 +1,9 @@
 [local]
-192.168.60.104 ansible_connection=local
+192.168.60.4 ansible_connection=local
 
 [remote]
-ansible-worker01.loc
-ansible-worker02.loc
+ansible-worker01.local
+#ansible-worker02.local
 
 [all:children]
 local
