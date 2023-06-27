@@ -147,7 +147,7 @@
     shell: /usr/bin/zsh
 
 - name: Set a message of the day
-  ansible.builtin.copy:
+  ansible.builtin.template:
     dest: /etc/motd
     src: templates/motd.j2
     owner: root
