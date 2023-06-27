@@ -149,7 +149,7 @@
 - name: Set a message of the day
   ansible.builtin.copy:
     dest: /etc/motd
-    src: motd.j2
+    src: templates/motd.j2
     owner: root
     group: root
     mode: 0644
