@@ -75,3 +75,25 @@
     auto_remove: true
     ports:
       - "8080:80"
+
+# Deploy Portainer
+- name: Create Portainer data directory
+  file:
+    path: /home/vagrant/docker/portainer/portainer-data
+    state: directory
+    owner: vagrant
+    group: vagrant
+
+- name: Deploy Portainer container
+  docker_container:
+    name: portainer
+    image: portainer/portainer-ce:latest
+    restart_policy: unless-stopped
+    security_opts:
+      - no-new-privileges:true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /home/vagrant/docker/portainer/portainer-data:/data
+    ports:
+      - 9000:9000
