@@ -285,12 +285,53 @@
     - "net.core.wmem_max=2097152"
   notify: restart_sysctl
 
+# JDK setup
+- name: Copy JDK file
+  copy:
+    src: files/u01/app/oracle/product/{{ oracle_version }}/fmwjava/{{ jdk_tarversion }}-linux-x64.tar.gz
+    dest: "{{ JAVA_BASE }}/{{ jdk_tarversion }}-linux-x64.tar.gz"
+    remote_src: false
+    owner: oracle
+    group: oinstall
+
+- name: Untar JDK file
+  unarchive:
+    src: "{{ JAVA_BASE }}/{{ jdk_tarversion }}-linux-x64.tar.gz"
+    dest: "{{ JAVA_BASE }}"
+    copy: no
+    owner: oracle
+    group: oinstall
+
+- name: Remove old symlink
+  file:
+    path: "{{ JAVA_BASE }}/{{ jdk_version }}" 
+    state: absent
+
+- name: Create symlink for JDK
+  become: true
+  file:
+    src: "{{ JAVA_BASE }}/{{ jdk_version }}_{{ jdk_uversion }}"
+    dest: "{{ JAVA_BASE }}/{{ jdk_version }}"
+    state: link
+    owner: oracle
+    group: oinstall
+    follow: false
+
+- name: Update securerandom.source property
+  lineinfile:
+    path: "{{ JAVA_BASE }}/{{ jdk_version }}/jre/lib/security/java.security"
+    regex: '^securerandom.source='
+    line: 'securerandom.source=file:/dev/./random'
+    backup: yes
+
+# Setup security updates with dnf-automatic
 - name: Ensure dnf-automatic is running and enabled on boot.
   ansible.builtin.service:
     name: dnf-automatic-install.timer
     state: started
     enabled: yes
 
+#check if restart is needed
 - name: Check to see if we need a reboot
   command: needs-restarting -r
   register: result
