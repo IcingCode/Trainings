@@ -1,1 +1,1 @@
-The JDK file will need to be place here.
+The JDK file will need to be placed foler.
