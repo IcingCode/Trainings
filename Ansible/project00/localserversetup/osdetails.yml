@@ -1,0 +1,14 @@
+---
+- name: Pull OS details
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Print Host Details
+      debug:
+        msg: "{{ item }}"
+      loop:
+        - "{{ ansible_hostname }}"        
+        - "{{ ansible_distribution_version }}"
+        - "{{ ansible_distribution }}"
+        - "{{ ansible_os_family }}"
