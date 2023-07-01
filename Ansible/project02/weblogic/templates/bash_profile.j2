@@ -1,0 +1,33 @@
+# .bash_profile
+
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+        . ~/.bashrc
+fi
+
+# User specific environment and startup programs
+
+PATH=$PATH:$HOME/.local/bin:$HOME/bin
+
+export PATH
+
+export TEMP=/u01/app/oracle/tmp
+export CONFIG_JVM_ARGS="-Djava.security.egd=file:/dev/./random"
+export ORACLE_BASE=/u01/app/oracle
+export ORACLE_HOME=$ORACLE_BASE/product/{{ oracle_version }}/fmw
+export ORACLE_HOME_OHS=$ORACLE_BASE/product/{{ oracle_version }}/fmwohs
+export DOMAIN_BASE=$ORACLE_BASE/admin/mw_domains
+export DOMAIN_SHARE=$ORACLE_BASE/shared/mw_domains/{{ domain_name }}
+export NODEMGR_HOME=$ORACLE_BASE/admin/nodemanager
+export DOMAIN_HOME=$DOMAIN_BASE/{{ domain_name }}
+export DOMAIN_HOME_OHS=$DOMAIN_BASE/WT01_DOMAIN
+export DOMAIN_APP_HOME=$DOMAIN_HOME/applications
+export MW_HOME=$ORACLE_BASE/product/{{ oracle_version }}/fmw
+export MW_HOME_OHS=$ORACLE_BASE/product/{{ oracle_version }}/fmwohs
+export KEYSTR_SHARE=$ORACLE_BASE/shared/keystores
+export WLS_HOME=$MW_HOME/wlserver
+export WL_HOME=$WLS_HOME
+export JAVA_BASE=$ORACLE_BASE/product/{{ oracle_version }}/fmwjava
+export JAVA_HOME=$JAVA_BASE/{{ jdk_version }}
+export LOG_BASE=/u01/logs
+export PATH=$ORACLE_HOME_OHS/oracle_common/jdk/jre/bin:$JAVA_HOME/bin:$PATH

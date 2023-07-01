@@ -1,0 +1,36 @@
+- name: Download JDK tarball
+  get_url:
+    url: "https://example.com/resources/jdk-8u333-linux-x64.tar.gz"
+    dest: "{{ JAVA_BASE }}/jdk-8u333-linux-x64.tar.gz"
+    owner: oracle
+    group: oinstall
+
+- name: Untar JDK file
+  unarchive:
+    src: "{{ JAVA_BASE }}/jdk-8u333-linux-x64.tar.gz"
+    dest: "{{ JAVA_BASE }}"
+    copy: no
+    owner: oracle
+    group: oinstall
+
+- name: Remove old symlink
+  file:
+    path: "{{ JAVA_BASE }}/{{ jdk_version }}" 
+    state: absent
+
+- name: Create symlink for JDK
+  become: true
+  file:
+    src: "{{ JAVA_BASE }}/{{ jdk_version }}_{{ jdk_uversion }}"
+    dest: "{{ JAVA_BASE }}/{{ jdk_version }}"
+    state: link
+    owner: oracle
+    group: oinstall
+    follow: false
+
+- name: Update securerandom.source property
+  lineinfile:
+    path: "{{ JAVA_BASE }}/{{ jdk_version }}/jre/lib/security/java.security"
+    regex: '^securerandom.source='
+    line: 'securerandom.source=file:/dev/./random'
+    backup: yes

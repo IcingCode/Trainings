@@ -1,0 +1,11 @@
+vars:
+  users:
+    - name: svc_user-t
+      password: "{{ 'random_password_t' | password_hash('sha512') }}"
+      shell: /bin/bash
+    - name: svc_user-a
+      password: "{{ 'random_password_a' | password_hash('sha512') }}"
+      shell: /bin/bash
+    - name: svc_user-p
+      password: "{{ 'random_password_p' | password_hash('sha512') }}"
+      shell: /bin/bash

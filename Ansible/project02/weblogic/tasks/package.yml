@@ -1,0 +1,47 @@
+- name: Install needed applications using vars.
+  ansible.builtin.package:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - vim
+      - zsh
+      - git
+      - rsyslog
+      - yum-utils
+      - bash-completion
+      - net-tools
+      - perl
+      - elfutils-libelf-devel
+      - tar
+      - bzip2
+      - bind-utils
+      - firewalld
+      - dnf-automatic
+      - epel-release
+      - wget
+      - binutils
+      - gcc
+      - gcc-c++
+      - glibc
+      - glibc-devel
+      - libaio
+      - libaio-devel
+      - libgcc
+      - libstdc++
+      - libstdc++-devel
+      - libnsl
+      - ksh
+      - sysstat
+      - numactl
+      - numactl-devel
+      - motif
+      - motif-devel
+      - redhat-lsb
+      - redhat-lsb-core
+      - openssl
+      - make 
+      - xorg-x11-server-utils
+      - xorg-x11-xauth
+      - xterm
+    ignore_errors: true

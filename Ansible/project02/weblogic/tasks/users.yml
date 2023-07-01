@@ -1,0 +1,20 @@
+- name: "include vars"
+  ansible.builtin.include_vars:
+    file: vars/users_dict.yml
+    name: users
+  register: test
+
+- name: "create users"
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    shell: "{{ item.shell }}"
+    state: present
+  loop: "{{ users.vars.users }}"
+
+- name: Add SSH public key for users
+  authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}"
+    state: present
+  loop: "{{ users.vars.users }}"

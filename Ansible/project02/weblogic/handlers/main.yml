@@ -1,0 +1,7 @@
+- name: restart_sysctl
+  command: sysctl -p
+  
+- name: reload_sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted

@@ -1,0 +1,25 @@
+---
+- name: Weblogic installation
+  hosts: remote
+  become: true
+  vars_files:
+   - ./vars/main.yml
+   - ./vars/users_dict.yml
+
+  pre_tasks:
+    - name: install updates (RHEL)
+      tags: always
+      dnf:
+        update_only: yes
+        update_cache: yes
+
+  tasks:
+    - import_tasks: tasks/bootstrap.yml
+    - import_tasks: tasks/package.yml
+    - import_tasks: tasks/user_group.yml
+    - import_tasks: tasks/users.yml
+    - import_tasks: tasks/dir_structure.yml
+    - import_tasks: tasks/file_structure.yml
+    - import_tasks: tasks/update_sysctl.yml
+    - import_tasks: tasks/x11.yml
+    - import_tasks: tasks/update_jdk_setup.yml
