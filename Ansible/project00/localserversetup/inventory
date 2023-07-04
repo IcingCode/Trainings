@@ -1,0 +1,6 @@
+[local]
+192.168.60.4 ansible_connection=local ansible_python_interpreter=/usr/libexec/platform-python
+
+
+[all:children]
+local

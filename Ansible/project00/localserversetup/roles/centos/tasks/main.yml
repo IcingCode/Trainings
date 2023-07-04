@@ -1,0 +1,270 @@
+- name: Perform full patching
+  ansible.builtin.package:
+    name: '*'
+    state: latest
+
+- name: Install needed applications using vars.
+  ansible.builtin.package:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - vim
+      - zsh
+      - git
+      - rsyslog
+      - yum-utils
+      - bash-completion
+      - net-tools
+      - perl
+      - elfutils-libelf-devel
+      - tar
+      - bzip2
+      - bind-utils
+      - firewalld
+      - dnf-automatic
+      - epel-release
+
+- name: Install fail2ban (RedHat).
+  dnf:
+    name: fail2ban
+    state: present
+    enablerepo: epel
+
+- name: Add user vagrant
+  ansible.builtin.user:
+    name: vagrant
+    shell: /usr/bin/zsh
+    home: /home/vagrant
+    password: $6$dOoodFWPv/eaWxVL$s7SQ0.EIbKIUuNs0d1H6K4OwLbob3KeK3PuYgpRF3aTY7GnpaMRlU0X5kG1IWTbhyhrgsHXpRx98OCnF6H7/H0
+    create_home: true
+    state: present
+
+# - name: Add SSH public key for user vagrant
+#   authorized_key:
+#     user: vagrant
+#     key: "{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}"
+#     state: present
+
+- name: Add sudoer rule for ansible user
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/vagrant
+    src: etc/sudoers.d/vagrant
+    owner: root
+    group: root
+    mode: 0440
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Check if .zshrc exists
+  stat:
+    path: /home/vagrant/.zshrc
+  register: stat_rc_result
+
+- name: Check if .oh-my-zsh exists
+  stat:
+    path: /home/vagrant/.oh-my-zsh
+  register: stat_oh_my_zsh_result
+
+- name: Cloning oh-my-zsh
+  git:
+    repo: https://github.com/robbyrussell/oh-my-zsh
+    dest: /home/vagrant/.oh-my-zsh
+  when: not stat_oh_my_zsh_result.stat.exists
+
+- name: Set Correct ownwership and permission to .oh-my-zsh
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh
+    owner: vagrant
+    group: vagrant
+    mode: 0755
+    recurse: true
+  #when: stat_oh_my_zsh_result.stat.exists
+
+- name: Copy .zshrc to home folder
+  ansible.builtin.copy:
+    dest: /home/vagrant/.zshrc
+    src: .zshrc
+    owner: vagrant
+    group: vagrant
+    mode: 0440
+
+- name: Check if zsh-autosuggestions exists
+  stat:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+  register: stat_zsh_autosuggestions_result
+
+- name: Clone zsh-autosuggestions github repository
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+    dest: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    clone: true
+    update: true
+    force: true
+  when: not stat_zsh_autosuggestions_result.stat.exists
+
+- name: Set Correct ownwership and permission to zsh-autosuggestions
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    owner: vagrant
+    group: vagrant
+    mode: 0755
+    recurse: true
+  #when: stat_zsh_autosuggestions_result.stat.exists
+
+- name: Set Shell to zsh
+  user:
+    name: vagrant
+    shell: /usr/bin/zsh
+
+# - name: Run autosuggestions installation script
+#   ansible.builtin.shell: sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+#
+# - name: Run autosuggestions installation script
+#   ansible.builtin.shell: git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+
+# - name: Add hardened SSH config
+#   ansible.builtin.copy:
+#     dest: /etc/ssh/sshd_config
+#     src: etc/ssh/centos/sshd_config
+#     owner: root
+#     group: root
+#     mode: 0600
+
+# - name: Restart ssh
+#   ansible.builtin.service:
+#     name: sshd
+#     state: restarted
+
+- name: Set a message of the day
+  ansible.builtin.copy:
+    dest: /etc/motd
+    src: etc/motd
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Set a login banner
+  ansible.builtin.copy:
+    dest: "{{ item }}"
+    src: etc/issue
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - /etc/issue.net
+
+- name: Make sure rsyslog is started and enabled
+  ansible.builtin.service:
+    name: rsyslog
+    state: started
+    enabled: true
+
+# - name: Start and enable Firewall Service
+#   ansible.builtin.service:
+#     name: "{{ firewall_pkg_redhat }}"
+#     enabled: true
+#     state: started
+
+# - name: Allow TCP/UDP ports through firewall
+#   firewalld:
+#     state: "{{ item.state }}"
+#     port: "{{ item.port }}"
+#     zone: public
+#     immediate: yes
+#     permanent: yes
+#   with_items:
+#     - { state: 'enabled', port: '22/tcp' }
+#     - { state: 'enabled', port: '80/tcp' }
+#     - { state: 'enabled', port: '443/tcp' }
+#     - { state: 'enabled', port: '123/udp' }
+
+- name: Ensure fail2ban is running and enabled on boot
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+# Create a copy of the default configuration file
+- name: Create a copy of the default configuration file
+  ansible.builtin.copy:
+    src: /etc/fail2ban/jail.conf
+    remote_src: true
+    dest: /etc/fail2ban/jail.local
+
+# Configure the jail settings
+- name: Configure the jail ban time
+  ini_file:
+    path: /etc/fail2ban/jail.local
+    section: DEFAULT
+    option: bantime
+    value: 86400
+- name: Configure the jail's findtime
+  ini_file:
+    path: /etc/fail2ban/jail.local
+    section: DEFAULT
+    option: findtime
+    value: 5m
+- name: Configure the jail's maxretry
+  ini_file:
+    path: /etc/fail2ban/jail.local
+    section: DEFAULT
+    option: maxretry
+    value: 3
+- name: Configure the jail's backend
+  ini_file:
+    path: /etc/fail2ban/jail.local
+    section: DEFAULT
+    option: backend
+    value: polling
+
+# Enable the ssh jail
+- name: Enable the ssh jail
+  ini_file:
+    path: /etc/fail2ban/jail.local
+    section: ssh
+    option: enabled
+    value: true
+# Restart the fail2ban service
+- name: Restart the fail2ban service
+  service:
+    name: fail2ban
+    state: restarted
+
+
+- name: Ensure dnf-automatic is running and enabled on boot.
+  ansible.builtin.service:
+    name: dnf-automatic-install.timer
+    state: started
+    enabled: yes
+
+- name: Check to see if we need a reboot
+  command: needs-restarting -r
+  register: result
+  ignore_errors: true
+
+- name: Display result
+  debug:
+    var: result.rc
+
+- name: Reboot the server
+  tags: reboot
+  become_user: root
+  shell: "sleep 5 && reboot"
+  async: 1
+  poll: 0
+  when: result.rc == 1
+
+- name: Wait for the reboot to complete if there was a change.
+  wait_for_connection:
+    connect_timeout: 10
+    sleep: 5
+    delay: 5
+    timeout: 300
+  when: result.rc == 1
+
+- name: Check the Uptime of the servers
+  shell: "uptime"
+  register: Uptime
+
+- debug: var=Uptime
+  
