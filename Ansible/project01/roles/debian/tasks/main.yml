@@ -3,6 +3,12 @@
     name: '*'
     state: latest
 
+# Needed for php
+- name: Add Ondrej repository
+  apt_repository:
+    repo: 'ppa:ondrej/php'
+    update_cache: yes
+
 - name: Install needed applications using vars.
   ansible.builtin.package:
     name: "{{ packages }}"
@@ -11,7 +17,7 @@
     packages:
       - vim
       - zsh
-      - git
+      # - git
       - rsyslog
       - bash-completion
       - net-tools
@@ -21,10 +27,35 @@
       - ufw
       - wget
       - binutils
-      - gcc
+      #- gcc
       - sysstat
       - openssl
-      - make 
+      - make
+      # Install packages needed for drupal
+      - python3-apt
+      - python3-pycurl
+      - acl
+      - git
+      - curl
+      - unzip
+      - sendmail
+      - apache2
+      - php8.2-common
+      - php8.2-cli
+      #- php8.2-dev
+      - php8.2-gd
+      - php8.2-curl
+      - php8.2-opcache
+      - php8.2-xml
+      - php8.2-mbstring
+      - php8.2-pdo
+      - php8.2-mysql
+      - php8.2-apcu
+      - libpcre3-dev
+      - libapache2-mod-php8.2
+      - python3-mysqldb
+      - mysql-server
+
     ignore_errors: true
 # User and groups tasks   
 - name: Create oinstall group
@@ -44,6 +75,102 @@
     password: $6$28HZxmElEYp37PJD$xNvhxWcMsvFoikTEgQw139A/LZVi.8.Dg3utZrlHbbtTnkYKrk0GmMcwsCqBtwsP/FeKJm9CrWj6OCYEIE3Xs0
     create_home: true
     state: present
+
+- name: Add user vagrant
+  ansible.builtin.user:
+    name: vagrant
+    shell: /usr/bin/zsh
+    home: /home/vagrant
+    password: $6$dOoodFWPv/eaWxVL$s7SQ0.EIbKIUuNs0d1H6K4OwLbob3KeK3PuYgpRF3aTY7GnpaMRlU0X5kG1IWTbhyhrgsHXpRx98OCnF6H7/H0
+    create_home: true
+    state: present
+
+- name: Add sudoer rule for ansible user
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/vagrant
+    src: etc/sudoers.d/vagrant
+    owner: root
+    group: root
+    mode: 0440
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Check if .zshrc exists
+  stat:
+    path: /home/vagrant/.zshrc
+  register: zshrc_result
+
+- name: Check if .oh-my-zsh exists
+  stat:
+    path: /home/vagrant/.oh-my-zsh
+  register: oh_my_zsh_result
+
+- name: Cloning oh-my-zsh
+  git:
+    repo: https://github.com/robbyrussell/oh-my-zsh
+    dest: /home/vagrant/.oh-my-zsh
+  when: not oh_my_zsh_result.stat.exists
+
+- name: Set Correct ownwership and permission to .oh-my-zsh
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh
+    owner: vagrant
+    group: vagrant
+    mode: 0755
+    recurse: true
+
+- name: Copy .zshrc to home folder
+  ansible.builtin.copy:
+    dest: /home/vagrant/.zshrc
+    src: .zshrc
+    owner: vagrant
+    group: vagrant
+    mode: 0440
+
+- name: Check if zsh-autosuggestions exists
+  stat:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+  register: stat_zsh_autosuggestions_result
+
+- name: Clone zsh-autosuggestions github repository
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+    dest: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    clone: true
+    update: true
+    force: true
+  when: not stat_zsh_autosuggestions_result.stat.exists
+
+- name: Set Correct ownwership and permission to zsh-autosuggestions
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    owner: vagrant
+    group: vagrant
+    mode: 0755
+    recurse: true
+
+- name: Set Shell to zsh
+  user:
+    name: vagrant
+    shell: /usr/bin/zsh
+
+- name: Set a message of the day
+  ansible.builtin.template:
+    dest: /etc/motd
+    src: templates/motd.j2
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Set a login banner
+  ansible.builtin.copy:
+    dest: "{{ item }}"
+    src: etc/issue
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - /etc/issue.net
+  
 # Directory Tasks
 - name: Create /home/oracle/dba if it does not exist
   ansible.builtin.file:
@@ -158,3 +285,119 @@
     - "net.core.rmem_max=2097152"
     - "net.core.wmem_max=2097152"
   notify: restart_sysctl
+
+# Drupal installation
+- name: Start Apache and MySQL services
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - apache2
+    - mysql
+
+- name: Enable Apache rewrite module (required for Drupal)
+  apache2_module:
+    name: rewrite
+    state: present
+  notify: restart_apache
+
+- name: Add Apache virtualhost for Drupal
+  template:
+    src: "templates/drupal.local.conf.j2"
+    dest: "/etc/apache2/sites-available/{{ domain }}.local.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart_apache
+
+- name: Enable the Drupal site.
+  command: >
+    a2ensite {{ domain }}.local
+    creates=/etc/apache2/sites-enabled/{{ domain }}.local.conf
+  notify: restart_apache
+
+- name: Disable the default site.
+  command: >
+    a2dissite 000-default
+    removes=/etc/apache2/sites-enabled/000-default.conf
+  notify: restart_apache
+
+- name: Adjust OpCache memory setting
+  lineinfile:
+    dest: "/etc/php/8.2/apache2/conf.d/10-opcache.ini"
+    regexp: "^opcache.memory_consumption"
+    line: "opcache.memory_consumption = 96"
+    state: present
+  notify: restart_apache
+
+- name: Create a MySQL database for Drupal
+  mysql_db:
+    name: "{{ domain }}"
+    state: present
+
+- name: Create a MySQL user for Drupal
+  mysql_user:
+    name: "{{ domain }}"
+    password: "1234"
+    priv: "{{ domain }}.*:ALL"
+    host: localhost
+    state: present
+
+- name: Download Composer installer
+  get_url:
+    url: "https://getcomposer.org/installer"
+    dest: "/tmp/composer-installer.php"
+    mode: "0755"
+
+- name: Run Composer installer
+  command: "php composer-installer.php"
+  args:
+    chdir: "/tmp"
+    creates: "/usr/local/bin/composer"
+
+- name: Move Composer into globally-accessible location.
+  command: >
+    mv /tmp/composer.phar /usr/local/bin/composer
+    creates=/usr/local/bin/composer
+
+- name: Ensure Drupal directory exists
+  file:
+    path: "{{ drupal_core_path }}"
+    state: directory
+    owner: www-data
+    group: www-data
+
+- name: Check if Drupal project already exists
+  stat:
+    path: "{{ drupal_core_path }}/composer.json"
+  register: drupal_composer_json
+
+- name: Create Drupal project
+  composer:
+    command: create-project
+    arguments: drupal/recommended-project "{{ drupal_core_path }}"
+    working_dir: "{{ drupal_core_path }}"
+    no_dev: true
+  become_user: www-data
+  when: not drupal_composer_json.stat.exists
+
+- name: Add Drush to the Drupal site with Composer
+  composer:
+    command: require
+    arguments: drush/drush:11.*
+    working_dir: "{{ drupal_core_path }}"
+  become_user: www-data
+  when: not drupal_composer_json.stat.exists
+
+- name: Install Drupal.
+  command: >
+    vendor/bin/drush si -y --site-name="{{ drupal_site_name }}"
+    --account-name=admin
+    --account-pass=admin
+    --db-url=mysql://{{ domain }}:1234@localhost/{{ domain }}
+    --root={{ drupal_core_path }}/web
+    chdir={{ drupal_core_path }}
+    creates={{ drupal_core_path }}/web/sites/default/settings.php
+  notify: restart apache
+  become_user: www-data

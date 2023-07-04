@@ -3,7 +3,7 @@
 
 [remote]
 ansible-worker01.local
-#ansible-worker02.local
+ansible-worker02.local
 
 [all:children]
 local
