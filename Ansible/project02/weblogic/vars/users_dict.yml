@@ -1,0 +1,11 @@
+vars:
+  users:
+    - name: svc_xldeploy-t
+      password: "{{ 'random_password_t' | password_hash('sha512') }}"
+      shell: /usr/bin/zsh
+    - name: svc_xldeploy-a
+      password: "{{ 'random_password_a' | password_hash('sha512') }}"
+      shell: /usr/bin/zsh
+    - name: svc_xldeploy-p
+      password: "{{ 'random_password_p' | password_hash('sha512') }}"
+      shell: /usr/bin/zsh

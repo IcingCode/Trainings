@@ -1,0 +1,10 @@
+---
+oracle_version: "12.2.1"
+jdk_tarversion: "jdk-8u333"
+jdk_version: "jdk1.8.0"
+jdk_uversion: "333"
+application_name: "CB"
+application2_name: "RP"
+application3_name: "WS"
+domain_name: "CB_DOMAIN"
+JAVA_BASE: "/u01/app/oracle/product/12.2.1/fmwjava"
