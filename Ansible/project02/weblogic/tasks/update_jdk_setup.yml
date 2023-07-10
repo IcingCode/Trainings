@@ -1,6 +1,6 @@
 - name: Download JDK tarball
   get_url:
-    url: "https://ftp.mhammed.tk/resources/jdk-8u333-linux-x64.tar.gz"
+    url: "https://example.com/resources/jdk-8u333-linux-x64.tar.gz"
     dest: "{{ JAVA_BASE }}/jdk-8u333-linux-x64.tar.gz"
     owner: oracle
     group: oinstall
