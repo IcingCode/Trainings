@@ -24,6 +24,7 @@
       - firewalld
       - dnf-automatic
       - epel-release
+      - ansible
 
 - name: Install fail2ban (RedHat).
   dnf:
@@ -136,9 +137,9 @@
 #     state: restarted
 
 - name: Set a message of the day
-  ansible.builtin.copy:
+  ansible.builtin.template:
     dest: /etc/motd
-    src: etc/motd
+    src: templates/motd.j2
     owner: root
     group: root
     mode: 0644
@@ -198,18 +199,21 @@
     section: DEFAULT
     option: bantime
     value: 86400
+
 - name: Configure the jail's findtime
   ini_file:
     path: /etc/fail2ban/jail.local
     section: DEFAULT
     option: findtime
     value: 5m
+
 - name: Configure the jail's maxretry
   ini_file:
     path: /etc/fail2ban/jail.local
     section: DEFAULT
     option: maxretry
     value: 3
+
 - name: Configure the jail's backend
   ini_file:
     path: /etc/fail2ban/jail.local
@@ -224,6 +228,7 @@
     section: ssh
     option: enabled
     value: true
+
 # Restart the fail2ban service
 - name: Restart the fail2ban service
   service:
