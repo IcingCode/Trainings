@@ -4,6 +4,7 @@
 [remote]
 ansible-worker01.local
 ansible-worker03.local
+ansible-worker04.local
 
 [all:children]
 local
