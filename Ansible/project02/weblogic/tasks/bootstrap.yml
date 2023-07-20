@@ -12,7 +12,7 @@
   tags: config
   authorized_key:
     user: ansible
-    key: "{{ lookup('file', '/home/vagrant/.ssh/ansible-controller.pub') }}"
+    key: "{{ lookup('file', 'files/ansible-controller.local.key.pub') }}"
     state: present
 
 - name: add sudoers file for ansible
