@@ -20,6 +20,7 @@
       - curl
       - gnupg2
       - lsb-release
+  ignore_errors: true
 
 # - name: Add group tux if it does not exists
 #   ansible.builtin.group:
