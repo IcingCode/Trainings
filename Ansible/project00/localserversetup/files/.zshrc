@@ -1,6 +1,10 @@
 # Path to your oh-my-zsh installation.
 export ZSH="/home/$USER/.oh-my-zsh"
 
+# Load connection keys
+eval "$(ssh-agent -s)" > /dev/null
+ssh-add ~/.ssh/git > /dev/null
+
 # Set name of the theme to load
 ZSH_THEME="agnoster"
 
