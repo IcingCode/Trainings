@@ -1,0 +1,8 @@
+- name: Remote Execute the mqsc files
+  win_shell: |
+    Get-CimInstance -class win32_service -Filter "state = 'running'"
+  register: scriptoutput
+
+- name: Script output
+  debug: var=scriptoutput.stdout
+

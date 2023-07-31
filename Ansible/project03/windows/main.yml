@@ -1,0 +1,6 @@
+---
+  - name: Update windows systems.
+    hosts: windows
+    roles:
+      - role: updates
+      - role: services
