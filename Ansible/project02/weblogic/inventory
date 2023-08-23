@@ -6,6 +6,7 @@ ansible-worker01.local
 ansible-worker02.local
 ansible-worker03.local
 ansible-worker04.local
+ansible-worker05.local
 
 [all:children]
 local
