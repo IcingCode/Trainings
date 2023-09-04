@@ -25,6 +25,7 @@
       - dnf-automatic
       - epel-release
       - ansible
+      - systemd-timesyncd
   ignore_errors: true
 
 - name: Install fail2ban (RedHat).
