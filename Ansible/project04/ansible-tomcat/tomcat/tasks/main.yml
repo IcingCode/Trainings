@@ -1,0 +1,151 @@
+- name: Add EPEL repository
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install basic packages
+  package:
+    name: ['firewalld','vim','bash-completion','tree','wget','unzip','curl']
+    state: present
+
+- name: Add tomcat group
+  group:
+    name: tomcat
+
+- name: Add "tomcat" user
+  user:
+    name: tomcat
+    group: tomcat
+    home: /home/tomcat
+    createhome: yes
+    system: yes
+
+- name: Create {{ JAVA_BASE }}/jdk if it does not exist
+  ansible.builtin.file:
+    path: "{{ JAVA_BASE }}/jdk"
+    state: directory
+    mode: '0755'
+    owner: tomcat
+    group: tomcat
+
+- name: Copy JDK file
+  copy:
+    src: jdk-{{ jdk_version }}_linux-x64_bin.tar.gz
+    dest: "/tmp/jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    remote_src: false
+    owner: tomcat
+    group: tomcat
+
+- name: Untar JDK file
+  unarchive:
+    src: "/tmp/jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    dest: "{{ JAVA_BASE }}/jdk"
+    copy: no
+    owner: tomcat
+    group: tomcat
+
+- name: Remove old symlink
+  file:
+    path: "{{ JAVA_BASE }}/java" 
+    state: absent
+
+- name: Create symlink for JDK
+  become: true
+  file:
+    src: "{{ JAVA_BASE }}/jdk/jdk-{{ jdk_version }}"
+    dest: "{{ JAVA_BASE }}/java"
+    state: link
+    owner: tomcat
+    group: tomcat
+    follow: false
+
+- name: Download Tomcat
+  get_url:
+    url: "{{ tomcat_archive_url }}"
+    dest: "{{ tomcat_archive_dest }}"
+
+- name: Create {{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }} if it does not exist
+  ansible.builtin.file:
+    path: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    state: directory
+    mode: '0755'
+    owner: tomcat
+    group: tomcat
+
+- name: Extract tomcat archive
+  unarchive:
+    src: "{{ tomcat_archive_dest }}"
+    dest: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    owner: tomcat
+    group: tomcat
+    remote_src: yes
+    extra_opts: "--strip-components=1"
+    creates: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}/bin"
+
+- name: Create symlink for Apache Tomcat
+  become: true
+  file:
+    src: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    dest: "{{ TOMCAT_BASE }}/tomcat"
+    state: link
+    owner: tomcat
+    group: tomcat
+    follow: false
+
+- name: Copy tomcat bashrc file
+  tags: bashrc
+  template:
+    src: templates/bashrc.j2
+    dest: /home/{{ TOMCAT_USER }}/.bashrc
+    owner: "{{ TOMCAT_USER }}"
+    group: "{{ TOMCAT_USER }}"
+    mode: '0644'
+
+- name: Copy tomcat service file
+  template:
+    src: templates/tomcat.service.j2
+    dest: /etc/systemd/system/tomcat.service
+  when: ansible_service_mgr == "systemd"
+
+- name: Start and enable tomcat
+  service:
+    daemon_reload: yes
+    name: tomcat
+    state: started
+    enabled: yes
+  when: ansible_service_mgr == "systemd"
+
+- name: Start and enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  when: ansible_service_mgr == "systemd"
+
+- name: Open tomcat port on the firewall
+  tags: firewallrules
+  firewalld:
+    state: "{{ item.state }}"
+    port: "{{ item.port }}"
+    zone: public
+    immediate: yes
+    permanent: yes
+  with_items:
+    - { state: 'enabled', port: '8080/tcp' }
+    - { state: 'enabled', port: '9443/tcp' }
+  when: ansible_service_mgr == "systemd"
+
+- name: Set UI access credentials
+  template:
+    src: tomcat-users.xml.j2
+    dest: "{{ CATALINA_BASE }}/conf/tomcat-users.xml"
+  notify: restart tomcat
+
+- name: Allow access to Manager and Host Manager apps from any IP
+  template:
+    src: context.xml.j2 
+    dest: "{{ item }}"
+  with_items:
+    - "{{ CATALINA_BASE }}/webapps/host-manager/META-INF/context.xml"
+    - "{{ CATALINA_BASE }}/webapps/manager/META-INF/context.xml"
+  notify: restart tomcat

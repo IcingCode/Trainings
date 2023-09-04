@@ -1,0 +1,51 @@
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+# Uncomment the following line if you don't like systemctl's auto-paging feature:
+# export SYSTEMD_PAGER=
+
+# Specific variables
+export TARGET_DIR=/opt/MW
+export TOMCAT_USER=tomcat
+export JAVA_HOME=${TARGET_DIR}/java
+export JAVA=${JAVA_HOME}/bin/java
+export JRE_HOME=${JAVA_HOME}
+export CATALINA_BASE=${TARGET_DIR}/tomcat
+export CATALINA_HOME=${TARGET_DIR}/tomcat
+export PATH="$JAVA_HOME/bin:$HOME/.local/bin:$HOME/bin:$PATH"
+
+# User specific aliases and functions
+alias vim=vi
+alias tomcat_logs="cd /opt/MW/tomcat/logs"
+alias tomcat_certs="cd /opt/MW/certs"
+alias tomcat_conf="cd /opt/MW/tomcat/conf"
+alias tomcat_bin="cd /opt/MW/tomcat/bin"
+alias stop_tomcat="/opt/MW/tomcat/bin/shutdown.sh"
+alias start_tomcat="/opt/MW/tomcat/bin/startup.sh"
+
+# Change prompt to show environment
+export PS1='\[\e[1;31m\]APP EDU \[\e[1;32m\]\u@\h \[\e[1;34m\]\W \[\e[0m\] $ '
+
+#Change directory colour to purple
+LS_COLORS=$LS_COLORS:'di=1;35:' ; export LS_COLORS
+
+
+echo
+echo "  ____   _____  _____ ";
+echo " |  _ \ / ____|/ ____|";
+echo " | |_) | (___ | |     ";
+echo " |  _ < \___ \| |     ";
+echo " | |_) |____) | |____ ";
+echo " |____/|_____/ \_____|";
+echo "                      ";
+echo
+echo "*** Shortkeys ***"
+echo Type \'start_tomcat\' or \'stop_tomcat\' to start or stop Tomcat
+echo Type \'tomcat_logs\' to go to the Tomcat log directory
+echo Type \'tomcat_conf\' to go to the Tomcat configuration directory
+echo Type \'tomcat_bin\' to go to the Tomcat bin directory
+echo Type \'tomcat_certs\' to go to the Certificate directory
+echo
