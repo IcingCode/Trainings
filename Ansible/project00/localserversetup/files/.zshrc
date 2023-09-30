@@ -29,6 +29,7 @@ ansible
 source $ZSH/oh-my-zsh.sh
 
 # Aliases
+alias ct="column -t"
 alias myip="curl ipinfo.io/ip; echo"
 alias cp="cp -i"                         
 alias df='df -h'                          
