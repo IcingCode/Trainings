@@ -16,6 +16,8 @@
   user:
     name: tomcat
     group: tomcat
+    groups: systemd-journal
+    append: yes
     home: /home/tomcat
     createhome: yes
     system: yes
@@ -106,6 +108,16 @@
     src: templates/tomcat.service.j2
     dest: /etc/systemd/system/tomcat.service
   when: ansible_service_mgr == "systemd"
+
+- name: add sudoers file for tomcat
+  tags: config
+  copy:
+    src: files/tomcat
+    dest: /etc/sudoers.d/tomcat
+    owner: root
+    group: root
+    mode: 0440
+    validate: /usr/sbin/visudo -csf %s
 
 - name: Start and enable tomcat
   service:

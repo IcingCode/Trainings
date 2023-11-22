@@ -4,7 +4,7 @@ CATALINA_HOME: "/opt/MW/tomcat"
 CATALINA_BASE: "/opt/MW/tomcat"
 TOMCAT_USER: tomcat
 TOMCAT_BASE: "/opt/MW"
-tomcat_ver: 9.0.79                          # Tomcat version to install
+tomcat_ver: 9.0.83                          # Tomcat version to install
 tomcat_v_num: 9
 jdk_version: 11.0.20
 ui_manager_user: manager                    # User who can access the UI manager section only
