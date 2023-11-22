@@ -1,0 +1,6 @@
+tomcat ALL=(root) NOPASSWD: /usr/bin/systemctl stop tomcat.service
+tomcat ALL=(root) NOPASSWD: /usr/bin/systemctl start tomcat.service
+tomcat ALL=(root) NOPASSWD: /usr/bin/systemctl restart tomcat.service
+tomcat ALL=(root) NOPASSWD: /usr/bin/systemctl status tomcat.service
+tomcat ALL=(root) NOPASSWD: /usr/bin/systemctl enable tomcat.service
+tomcat ALL=(root) NOPASSWD: /usr/bin/systemctl daemon-reload
