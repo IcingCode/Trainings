@@ -84,21 +84,21 @@
     src: etc/sudoers.d/vagrant
     owner: root
     group: root
-    mode: 0440
+    mode: "0440"
     validate: /usr/sbin/visudo -csf %s
 
 - name: Check if .zshrc exists
-  stat:
+  ansible.builtin.stat:
     path: /home/vagrant/.zshrc
   register: zshrc_result
 
 - name: Check if .oh-my-zsh exists
-  stat:
+  ansible.builtin.stat:
     path: /home/vagrant/.oh-my-zsh
   register: oh_my_zsh_result
 
 - name: Cloning oh-my-zsh
-  git:
+  ansible.builtin.git:
     repo: https://github.com/robbyrussell/oh-my-zsh
     dest: /home/vagrant/.oh-my-zsh
   when: not oh_my_zsh_result.stat.exists
@@ -117,15 +117,15 @@
     src: .zshrc
     owner: vagrant
     group: vagrant
-    mode: 0440
+    mode: "0440"
 
 - name: Check if zsh-autosuggestions exists
-  stat:
+  ansible.builtin.stat:
     path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
   register: stat_zsh_autosuggestions_result
 
 - name: Clone zsh-autosuggestions github repository
-  git:
+  ansible.builtin.git:
     repo: https://github.com/zsh-users/zsh-autosuggestions
     dest: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
     clone: true
@@ -142,7 +142,7 @@
     recurse: true
 
 - name: Set Shell to zsh
-  user:
+  ansible.builtin.user:
     name: vagrant
     shell: /usr/bin/zsh
 
@@ -228,14 +228,14 @@
     group: oinstall
 # Create file structure
 - name: Copy .bash_profile file
-  template:
+  ansible.builtin.template:
     src: templates/bash_profile.j2
     dest: /home/oracle/.bash_profile
     owner: oracle
     group: oracle
     mode: '0644'
 - name: Copy .bashrc file
-  template:
+  ansible.builtin.template:
     src: templates/bashrc.j2
     dest: /home/oracle/.bashrc
     owner: oracle
@@ -261,7 +261,7 @@
     mode: '0644'
 
 # - name: Generate /etc/oraInst.loc
-#   template:
+#   ansible.builtin.template:
 #     src: oraInst.loc.j2
 #     dest: /etc/oraInst.loc
 #     owner: oracle
@@ -287,7 +287,7 @@
 
 # JDK setup
 - name: Copy JDK file
-  copy:
+  ansible.builtin.copy:
     src: files/u01/app/oracle/product/{{ oracle_version }}/fmwjava/{{ jdk_tarversion }}-linux-x64.tar.gz
     dest: "{{ JAVA_BASE }}/{{ jdk_tarversion }}-linux-x64.tar.gz"
     remote_src: false

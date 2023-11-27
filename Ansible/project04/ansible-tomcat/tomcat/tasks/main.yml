@@ -13,7 +13,7 @@
     name: tomcat
 
 - name: Add "tomcat" user
-  user:
+  ansible.builtin.user:
     name: tomcat
     group: tomcat
     groups: systemd-journal
@@ -31,7 +31,7 @@
     group: tomcat
 
 - name: Copy JDK file
-  copy:
+  ansible.builtin.copy:
     src: jdk-{{ jdk_version }}_linux-x64_bin.tar.gz
     dest: "/tmp/jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
     remote_src: false
@@ -96,7 +96,7 @@
 
 - name: Copy tomcat bashrc file
   tags: bashrc
-  template:
+  ansible.builtin.template:
     src: templates/bashrc.j2
     dest: /home/{{ TOMCAT_USER }}/.bashrc
     owner: "{{ TOMCAT_USER }}"
@@ -104,19 +104,19 @@
     mode: '0644'
 
 - name: Copy tomcat service file
-  template:
+  ansible.builtin.template:
     src: templates/tomcat.service.j2
     dest: /etc/systemd/system/tomcat.service
   when: ansible_service_mgr == "systemd"
 
 - name: add sudoers file for tomcat
   tags: config
-  copy:
+  ansible.builtin.copy:
     src: files/tomcat
     dest: /etc/sudoers.d/tomcat
     owner: root
     group: root
-    mode: 0440
+    mode: "0440"
     validate: /usr/sbin/visudo -csf %s
 
 - name: Start and enable tomcat
@@ -148,13 +148,13 @@
   when: ansible_service_mgr == "systemd"
 
 - name: Set UI access credentials
-  template:
+  ansible.builtin.template:
     src: tomcat-users.xml.j2
     dest: "{{ CATALINA_BASE }}/conf/tomcat-users.xml"
   notify: restart tomcat
 
 - name: Allow access to Manager and Host Manager apps from any IP
-  template:
+  ansible.builtin.template:
     src: context.xml.j2 
     dest: "{{ item }}"
   with_items:

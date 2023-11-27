@@ -1,5 +1,5 @@
 - name: Remote Execute the mqsc files
-  win_shell: |
+  ansible.windows.win_shell: |
     Get-CimInstance -class win32_service -Filter "state = 'running'"
   register: scriptoutput
 

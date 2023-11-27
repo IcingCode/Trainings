@@ -1,5 +1,5 @@
 - name: Copy JDK file
-  copy:
+  ansible.builtin.copy:
     src: files/u01/app/oracle/product/{{ oracle_version }}/fmwjava/{{ jdk_tarversion }}-linux-x64.tar.gz
     dest: "{{ JAVA_BASE }}/{{ jdk_tarversion }}-linux-x64.tar.gz"
     remote_src: false

@@ -13,7 +13,7 @@
   loop: "{{ users.vars.users }}"
 
 - name: Add SSH public key for users
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ item.name }}"
     key: "{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}"
     state: present

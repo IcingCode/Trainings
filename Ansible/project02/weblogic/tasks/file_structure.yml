@@ -1,5 +1,5 @@
 - name: Copy .bash_profile file
-  template:
+  ansible.builtin.template:
     src: templates/bash_profile.j2
     dest: /home/oracle/.bash_profile
     owner: oracle
@@ -7,7 +7,7 @@
     mode: '0644'
 
 - name: Copy .bashrc file
-  template:
+  ansible.builtin.template:
     src: templates/bashrc.j2
     dest: /home/oracle/.bashrc
     owner: oracle
@@ -34,7 +34,7 @@
     mode: '0644'
 
 # - name: Generate /etc/oraInst.loc
-#   template:
+#   ansible.builtin.template:
 #     src: oraInst.loc.j2
 #     dest: /etc/oraInst.loc
 #     owner: oracle
