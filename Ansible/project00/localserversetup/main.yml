@@ -1,6 +1,6 @@
 ---
-  - name: Update systems
-    hosts: all
-    become: true
-    roles:
-      - { role: centos, when: ansible_distribution == "Rocky" or ansible_distribution == "AlmaLinux" }
+- name: Update systems
+  hosts: all
+  become: true
+  roles:
+    - { role: centos, when: ansible_distribution == "Rocky" or ansible_distribution == "AlmaLinux" }

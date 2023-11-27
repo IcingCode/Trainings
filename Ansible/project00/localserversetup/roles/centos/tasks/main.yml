@@ -24,12 +24,10 @@
       - firewalld
       - dnf-automatic
       - epel-release
-      - ansible
-      - systemd-timesyncd
-  ignore_errors: true
+      - ansible-core
 
 - name: Install fail2ban (RedHat).
-  dnf:
+  ansible.builtin.dnf:
     name: fail2ban
     state: present
     enablerepo: epel
@@ -55,21 +53,21 @@
     src: etc/sudoers.d/vagrant
     owner: root
     group: root
-    mode: 0440
+    mode: "0440"
     validate: /usr/sbin/visudo -csf %s
 
 - name: Check if .zshrc exists
-  stat:
+  ansible.builtin.stat:
     path: /home/vagrant/.zshrc
   register: stat_rc_result
 
 - name: Check if .oh-my-zsh exists
-  stat:
+  ansible.builtin.stat:
     path: /home/vagrant/.oh-my-zsh
   register: stat_oh_my_zsh_result
 
 - name: Cloning oh-my-zsh
-  git:
+  ansible.builtin.git:
     repo: https://github.com/robbyrussell/oh-my-zsh
     dest: /home/vagrant/.oh-my-zsh
   when: not stat_oh_my_zsh_result.stat.exists
@@ -89,15 +87,15 @@
     src: .zshrc
     owner: vagrant
     group: vagrant
-    mode: 0440
+    mode: "0440"
 
 - name: Check if zsh-autosuggestions exists
-  stat:
+  ansible.builtin.stat:
     path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
   register: stat_zsh_autosuggestions_result
 
 - name: Clone zsh-autosuggestions github repository
-  git:
+  ansible.builtin.git:
     repo: https://github.com/zsh-users/zsh-autosuggestions
     dest: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
     clone: true
@@ -110,12 +108,12 @@
     path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
     owner: vagrant
     group: vagrant
-    mode: 0755
+    mode: "0755"
     recurse: true
   #when: stat_zsh_autosuggestions_result.stat.exists
 
 - name: Set Shell to zsh
-  user:
+  ansible.builtin.user:
     name: vagrant
     shell: /usr/bin/zsh
 
@@ -144,7 +142,7 @@
     src: templates/motd.j2
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Set a login banner
   ansible.builtin.copy:
@@ -152,7 +150,7 @@
     src: etc/issue
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   with_items:
     - /etc/issue.net
 
@@ -185,7 +183,7 @@
   ansible.builtin.service:
     name: fail2ban
     state: started
-    enabled: yes
+    enabled: true
 
 # Create a copy of the default configuration file
 - name: Create a copy of the default configuration file
@@ -196,28 +194,28 @@
 
 # Configure the jail settings
 - name: Configure the jail ban time
-  ini_file:
+  ansible.builtin.ini_file:
     path: /etc/fail2ban/jail.local
     section: DEFAULT
     option: bantime
     value: 86400
 
 - name: Configure the jail's findtime
-  ini_file:
+  ansible.builtin.ini_file:
     path: /etc/fail2ban/jail.local
     section: DEFAULT
     option: findtime
     value: 5m
 
 - name: Configure the jail's maxretry
-  ini_file:
+  ansible.builtin.ini_file:
     path: /etc/fail2ban/jail.local
     section: DEFAULT
     option: maxretry
     value: 3
 
 - name: Configure the jail's backend
-  ini_file:
+  ansible.builtin.ini_file:
     path: /etc/fail2ban/jail.local
     section: DEFAULT
     option: backend
@@ -225,7 +223,7 @@
 
 # Enable the ssh jail
 - name: Enable the ssh jail
-  ini_file:
+  ansible.builtin.ini_file:
     path: /etc/fail2ban/jail.local
     section: ssh
     option: enabled
@@ -242,27 +240,27 @@
   ansible.builtin.service:
     name: dnf-automatic-install.timer
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Check to see if we need a reboot
-  command: needs-restarting -r
+  ansible.builtin.command: needs-restarting -r
   register: result
   ignore_errors: true
 
 - name: Display result
-  debug:
+  ansible.builtin.debug:
     var: result.rc
 
 - name: Reboot the server
-  tags: reboot
-  become_user: root
-  shell: "sleep 5 && reboot"
+  ansible.builtin.shell: "sleep 5 && reboot"
   async: 1
   poll: 0
   when: result.rc == 1
+  become: true
+  tags: reboot
 
 - name: Wait for the reboot to complete if there was a change.
-  wait_for_connection:
+  ansible.builtin.wait_for_connection:
     connect_timeout: 10
     sleep: 5
     delay: 5
@@ -270,8 +268,9 @@
   when: result.rc == 1
 
 - name: Check the Uptime of the servers
-  shell: "uptime"
+  ansible.builtin.shell: "uptime"
   register: Uptime
 
-- debug: var=Uptime
-  
+- ansible.builtin.debug:
+    var: Uptime
+

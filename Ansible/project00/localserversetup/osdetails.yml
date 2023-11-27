@@ -5,10 +5,10 @@
   gather_facts: true
   tasks:
     - name: Print Host Details
-      debug:
+      ansible.builtin.debug:
         msg: "{{ item }}"
       loop:
-        - "{{ ansible_hostname }}"        
+        - "{{ ansible_hostname }}"
         - "{{ ansible_distribution_version }}"
         - "{{ ansible_distribution }}"
         - "{{ ansible_os_family }}"
