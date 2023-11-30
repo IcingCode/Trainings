@@ -6,3 +6,12 @@
 - name: Display Script Output
   ansible.builtin.debug:
     var: script_output.stdout
+
+- name: Stop Windows services
+  ansible.windows.win_service:
+    name: "{{ item }}"
+    state: stopped
+  loop:
+    - Service1
+    - Service2
+    - Service3
