@@ -1,0 +1,5 @@
+ansible_user: svc_ansible_tab_a
+ansible_password: inkeypass
+ansible_connection: winrm
+ansible_winrm_transport: basic
+ansible_winrm_server_cert_validation: ignore
