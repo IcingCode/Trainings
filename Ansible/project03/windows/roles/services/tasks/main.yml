@@ -1,8 +1,8 @@
-- name: Remote Execute the mqsc files
+- name: Check Running services
   ansible.windows.win_shell: |
-    Get-CimInstance -class win32_service -Filter "state = 'running'"
-  register: scriptoutput
-
-- name: Script output
-  debug: var=scriptoutput.stdout
-
+    Get-CimInstance -Class Win32_Service -Filter "state = 'running'"
+  register: script_output
+  
+- name: Display Script Output
+  ansible.builtin.debug:
+    var: script_output.stdout
