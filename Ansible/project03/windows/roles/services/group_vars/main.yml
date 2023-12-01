@@ -1,5 +1,5 @@
-ansible_user: svc_ansible_tab_a
-ansible_password: inkeypass
+ansible_user: ansible
+ansible_password: StrongP@ssword
 ansible_connection: winrm
 ansible_port: 5985
 ansible_winrm_transport: kerberos
