@@ -1,3 +1,4 @@
+---
 vars:
   users:
     - name: svc_user-t
