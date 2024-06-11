@@ -1,0 +1,14 @@
+vars:
+  tab_users:
+    - name: vagrant
+      home: /home/vagrant
+      password: "{{ 'vagrant' | password_hash('sha512') }}"
+      groups: wheel
+      inventory: /inventories/hosts
+      shell: /usr/bin/zsh
+    - name: svc_ansible_tab_a
+      home: /home/svc_ansible_tab_a
+      password: "{{ 'b7bd04091b3d5998508ca5b8148b038f' | password_hash('sha512') }}"
+      groups: wheel
+      inventory: /inventories/hosts
+      shell: /usr/bin/zsh

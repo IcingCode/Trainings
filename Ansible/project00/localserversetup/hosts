@@ -1,0 +1,8 @@
+[local]
+ansible-controller.local ansible_connection=local
+[remote]
+worker01.local
+
+[all:children]
+local
+remote

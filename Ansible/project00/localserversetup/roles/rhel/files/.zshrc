@@ -4,10 +4,6 @@ umask 027
 # Path to your oh-my-zsh installation.
 export ZSH="/home/$USER/.oh-my-zsh"
 
-# Load connection keys
-eval "$(ssh-agent -s)" > /dev/null
-ssh-add ~/.ssh/git > /dev/null
-
 # Set name of the theme to load
 ZSH_THEME="agnoster"
 
@@ -32,7 +28,6 @@ ansible
 source $ZSH/oh-my-zsh.sh
 
 # Aliases
-alias ct="column -t"
 alias myip="curl ipinfo.io/ip; echo"
 alias cp="cp -i"                         
 alias df='df -h'                          
