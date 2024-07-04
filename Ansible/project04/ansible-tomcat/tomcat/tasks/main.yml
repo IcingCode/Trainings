@@ -48,13 +48,13 @@
 
 - name: Remove old symlink
   file:
-    path: "{{ JAVA_BASE }}/java" 
+    path: "{{ JAVA_BASE }}/java"
     state: absent
 
 - name: Create symlink for JDK
   become: true
   file:
-    src: "{{ JAVA_BASE }}/jdk/jdk-{{ jdk_version }}"
+    src: "{{ JAVA_BASE }}/jdk/jdk-{{ jdk_untarred_version }}"
     dest: "{{ JAVA_BASE }}/java"
     state: link
     owner: tomcat
@@ -109,6 +109,14 @@
     dest: /etc/systemd/system/tomcat.service
   when: ansible_service_mgr == "systemd"
 
+- name: Copy setenv file
+  ansible.builtin.template:
+    src: templates/setenv.sh.j2
+    dest: "{{ TOMCAT_BASE }}/tomcat/bin"
+    owner: "{{ TOMCAT_USER }}"
+    group: "{{ TOMCAT_USER }}"
+    mode: '0750'
+
 - name: add sudoers file for tomcat
   tags: config
   ansible.builtin.copy:
@@ -143,8 +151,10 @@
     immediate: yes
     permanent: yes
   with_items:
+    - { state: 'enabled', port: '80/tcp' }
+    - { state: 'enabled', port: '443/tcp' }
     - { state: 'enabled', port: '8080/tcp' }
-    - { state: 'enabled', port: '9443/tcp' }
+    - { state: 'enabled', port: '8443/tcp' }
   when: ansible_service_mgr == "systemd"
 
 - name: Set UI access credentials
@@ -155,9 +165,17 @@
 
 - name: Allow access to Manager and Host Manager apps from any IP
   ansible.builtin.template:
-    src: context.xml.j2 
+    src: context.xml.j2
     dest: "{{ item }}"
   with_items:
     - "{{ CATALINA_BASE }}/webapps/host-manager/META-INF/context.xml"
     - "{{ CATALINA_BASE }}/webapps/manager/META-INF/context.xml"
   notify: restart tomcat
+
+- name: Set unprivileged port start and reload sysctl
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_unprivileged_port_start
+    value: '443'
+    sysctl_set: yes
+    state: present
+    reload: yes
