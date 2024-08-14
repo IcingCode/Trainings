@@ -112,7 +112,7 @@
 - name: Copy setenv file
   ansible.builtin.template:
     src: templates/setenv.sh.j2
-    dest: "{{ TOMCAT_BASE }}/tomcat/bin"
+    dest: "{{ TOMCAT_BASE }}/tomcat/bin/setenv.sh"
     owner: "{{ TOMCAT_USER }}"
     group: "{{ TOMCAT_USER }}"
     mode: '0750'
@@ -170,6 +170,7 @@
   with_items:
     - "{{ CATALINA_BASE }}/webapps/host-manager/META-INF/context.xml"
     - "{{ CATALINA_BASE }}/webapps/manager/META-INF/context.xml"
+    - "{{ CATALINA_BASE }}/webapps/examples/META-INF/context.xml"
   notify: restart tomcat
 
 - name: Set unprivileged port start and reload sysctl
