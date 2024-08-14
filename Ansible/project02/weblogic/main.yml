@@ -17,10 +17,10 @@
     - name: install updates (RHEL version 7.9 and lower)
       when: ansible_distribution_version == '7.9'
       tags: always
-      yum:
+      ansible.builtin.dnf:
         update_only: yes
         update_cache: yes
-        
+
   tasks:
     - import_tasks: tasks/bootstrap.yml
     - import_tasks: tasks/package.yml
