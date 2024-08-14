@@ -22,6 +22,6 @@ basic_packages:
 
 tomcat_group: tomcat
 tomcat_user: tomcat
-tomcat_home: /opt/tomcat
+tomcat_home: /home/tomcat
 tomcat_additional_groups:
   - systemd-journal
