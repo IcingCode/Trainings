@@ -1,0 +1,89 @@
+---
+- name: Stop Tomcat service
+  ansible.builtin.systemd:
+    name: tomcat
+    state: stopped
+  tags:
+    - upgrade
+
+- name: Remove old Tomcat installation
+  ansible.builtin.file:
+    path: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_current_version.stdout.split('\n')[0].split(':')[1].strip() }}"
+    state: absent
+  tags:
+    - upgrade
+
+- name: Download new Tomcat version
+  ansible.builtin.get_url:
+    url: "{{ tomcat_archive_url }}"
+    dest: "{{ tomcat_archive_dest }}"
+    mode: '0644'
+  tags:
+    - upgrade
+
+- name: Extract new Tomcat archive
+  ansible.builtin.unarchive:
+    src: "{{ tomcat_archive_dest }}"
+    dest: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    remote_src: true
+    extra_opts: "--strip-components=1"
+  tags:
+    - upgrade
+
+- name: Update Tomcat symlink
+  ansible.builtin.file:
+    src: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    dest: "{{ TOMCAT_BASE }}/tomcat"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - upgrade
+
+- name: Check if backup file exists
+  ansible.builtin.stat:
+    path: "{{ tomcat_backup_file }}"
+  register: backup_file
+
+- name: Restore configuration files
+  ansible.builtin.unarchive:
+    src: "{{ tomcat_backup_file }}"
+    dest: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    remote_src: true
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0750'
+  when: backup_file.stat.exists
+  tags:
+    - upgrade
+
+- name: Set permissions on restored configuration files
+  ansible.builtin.file:
+    path: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}/conf"
+    state: directory
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0750'
+    recurse: true
+  when: backup_file.stat.exists
+  tags:
+    - upgrade
+
+- name: Start Tomcat service
+  ansible.builtin.systemd:
+    name: tomcat
+    state: started
+  tags:
+    - upgrade
+
+- name: Verify Tomcat upgrade
+  ansible.builtin.uri:
+    url: "http://localhost:8080"
+    return_content: true
+  register: tomcat_response
+  failed_when: "'Apache Tomcat/' not in tomcat_response.content"
+  tags:
+    - upgrade
+    - verify
