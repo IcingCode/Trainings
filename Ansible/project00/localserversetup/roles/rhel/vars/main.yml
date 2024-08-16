@@ -1,14 +1,7 @@
-vars:
-  tab_users:
-    - name: vagrant
-      home: /home/vagrant
-      password: "{{ 'vagrant' | password_hash('sha512') }}"
-      groups: wheel
-      inventory: /inventories/hosts
-      shell: /usr/bin/zsh
-    - name: svc_ansible_tab_a
-      home: /home/svc_ansible_tab_a
-      password: "{{ 'b7bd04091b3d5998508ca5b8148b038f' | password_hash('sha512') }}"
-      groups: wheel
-      inventory: /inventories/hosts
-      shell: /usr/bin/zsh
+---
+new_localsystem_rh_new_user: "daemontamer"
+
+# Redhat group_vars
+new_localsystem_rh_admin_group: wheel
+new_localsystem_rh_firewall_pkg: firewalld
+new_localsystem_rh_ssh_service_redhat: sshd

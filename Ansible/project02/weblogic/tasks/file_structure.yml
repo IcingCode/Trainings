@@ -13,12 +13,12 @@
     owner: oracle
     group: oracle
     mode: '0644'
-    
+
 - name: Create /etc/oraInst.loc
   lineinfile:
     path: /etc/oraInst.loc
     line: "inventory_loc=/u01/app/oracle/oraInventory"
-    create: yes
+    create: true
     owner: oracle
     group: oracle
     mode: '0644'
@@ -28,7 +28,7 @@
     path: /etc/oraInst.loc
     line: "inst_group=oinstall"
     insertafter: "inventory_loc=/u01/app/oracle/oraInventory"
-    create: no
+    create: false
     owner: oracle
     group: oinstall
     mode: '0644'
@@ -47,4 +47,4 @@
     src: files/etc/security/limits.d/99-oracle.conf
     owner: root
     group: root
-    mode: 0640
+    mode: "0640"

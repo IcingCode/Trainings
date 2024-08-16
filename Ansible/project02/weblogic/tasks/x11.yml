@@ -4,7 +4,7 @@
     path: /etc/ssh/sshd_config
     regex: '^#?(X11Forwarding)'
     line: 'X11Forwarding yes'
-    backrefs: yes
+    backrefs: true
     state: present
 
 - name: Uncomment or add X11DisplayOffset line in sshd_config
@@ -13,7 +13,7 @@
     path: /etc/ssh/sshd_config
     regex: '^#?(X11DisplayOffset)'
     line: 'X11DisplayOffset 10'
-    backrefs: yes
+    backrefs: true
     state: present
 
 - name: Uncomment or add X11UseLocalhost line in sshd_config
@@ -22,7 +22,7 @@
     path: /etc/ssh/sshd_config
     regex: '^#?(X11UseLocalhost)'
     line: 'X11UseLocalhost yes'
-    backrefs: yes
+    backrefs: true
     state: present
 
 - name: Restart sshd service

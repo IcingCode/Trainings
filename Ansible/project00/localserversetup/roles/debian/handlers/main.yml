@@ -1,0 +1,23 @@
+- name: Reload_ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+
+- name: Reload_sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+
+- name: Check server uptime
+  ansible.builtin.command: uptime
+  register: uptime_result
+  changed_when: false
+
+- name: Display uptime after reboot
+  ansible.builtin.debug:
+    var: uptime_result.stdout
+
+- name: Restart fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: restarted

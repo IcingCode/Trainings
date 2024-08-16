@@ -1,0 +1,315 @@
+- name: Perform full patching.
+  tags: config
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: safe
+
+- name: Install needed applications using vars.
+  tags: config
+  ansible.builtin.package:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - vim
+      - git
+      - zsh
+      - ufw
+      - debian-goodies
+      - unattended-upgrades
+      - fail2ban
+      - ca-certificates
+      - curl
+      - gnupg2
+      - lsb-release
+      - xsel
+
+- name: Generate a random password
+  ansible.builtin.set_fact:
+    random_password: "{{ lookup('ansible.builtin.password', '/dev/null chars=ascii_letters,digits,punctuation length=24') }}"
+  no_log: true
+
+- name: Generate password hash
+  ansible.builtin.set_fact:
+    user_password_hash: "{{ random_password | password_hash('sha512') }}"
+  no_log: true
+
+- name: Add user {{ new_localsystem_debian_new_user }}
+  tags: createusers
+  ansible.builtin.user:
+    name: "{{ new_localsystem_debian_new_user }}"
+    shell: /usr/bin/zsh
+    home: "/home/{{ new_localsystem_debian_new_user }}"
+    password: "{{ user_password_hash }}"
+    create_home: true
+    state: present
+    groups: "{{ user_groups | default([]) }}"
+    append: true
+    expires: -1
+    generate_ssh_key: true
+    ssh_key_bits: 4096
+    ssh_key_type: rsa
+  no_log: true
+
+- name: Save password for later retrieval
+  ansible.builtin.copy:
+    content: >-
+      Password for {{ new_localsystem_debian_ssh_new_user }}: {{ random_password }}
+    dest: >-
+      /root/{{ new_localsystem_debian_ssh_new_user }}_password_{{
+      ansible_date_time.iso8601 | regex_replace('T', '_')
+      | regex_replace(':', '-')
+      | regex_replace('\\..*', '')
+      }}.txt
+    mode: '0600'
+  no_log: true
+
+- name: Add SSH public key for user {{ new_localsystem_debian_new_user }}.
+  tags: createusers
+  ansible.posix.authorized_key:
+    user: "{{ new_localsystem_debian_new_user }}"
+    key: "{{ lookup('file', 'files/id_ed25519.pub') }}"
+    state: present
+
+- name: Add sudoer rule for new user.
+  tags: createusers
+  ansible.builtin.template:
+    src: sudoer.j2
+    dest: /etc/sudoers.d/{{ new_localsystem_debian_new_user }}
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Check if .zshrc exists.
+  tags: createusers
+  ansible.builtin.stat:
+    path: /home/{{ new_localsystem_debian_new_user }}/.zshrc
+  register: stat_rc_result
+
+- name: Ensure oh-my-zsh is installed
+  tags: createusers
+  ansible.builtin.git:
+    repo: "https://github.com/robbyrussell/oh-my-zsh"
+    dest: "/home/{{ new_localsystem_debian_new_user }}/.oh-my-zsh"
+    version: "master"
+    depth: 1
+    force: false
+    update: false
+
+- name: Copy .zshrc to home folder.
+  tags: createusers
+  ansible.builtin.copy:
+    dest: /home/{{ new_localsystem_debian_new_user }}/.zshrc
+    src: .zshrc
+    owner: "{{ new_localsystem_debian_new_user }}"
+    group: "{{ new_localsystem_debian_new_user }}"
+    mode: "0440"
+
+- name: Ensure zsh-autosuggestions plugin is installed
+  tags: createusers
+  ansible.builtin.git:
+    repo: "https://github.com/zsh-users/zsh-autosuggestions"
+    dest: "/home/{{ new_localsystem_debian_new_user }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    version: "master"
+    depth: 1
+    force: false
+    update: false
+
+- name: Set correct ownership for .oh-my-zsh directory
+  ansible.builtin.file:
+    path: "/home/{{ new_localsystem_debian_new_user }}/.oh-my-zsh"
+    owner: "{{ new_localsystem_debian_new_user }}"
+    group: "{{ new_localsystem_debian_new_user }}"
+    recurse: true
+    state: directory
+
+- name: Add hardened SSH config.
+  tags: ssh_hardening
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config
+    src: etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload_ssh
+
+- name: Set a message of the day.
+  tags: banners
+  ansible.builtin.template:
+    dest: /etc/motd
+    src: templates/motd.j2
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Set a login banner.
+  tags: banners
+  ansible.builtin.copy:
+    dest: "{{ item }}"
+    src: etc/issue
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - /etc/issue.net
+
+
+- name: Start and enable Firewall Service.
+  tags: firewallrules
+  ansible.builtin.service:
+    name: "{{ new_localsystem_debian_firewall_pkg }}"
+    enabled: true
+    state: started
+
+- name: Allow TCP ports through firewall.
+  tags: firewallrules
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "22"
+    - "80"
+    - "443"
+
+- name: Ensure fail2ban is installed
+  ansible.builtin.package:
+    name: fail2ban
+    state: present
+  tags:
+    - fail2ban
+    - security
+
+- name: Ensure fail2ban is running and enabled on boot
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  tags:
+    - fail2ban
+    - security
+
+- name: Backup the default fail2ban configuration file
+  ansible.builtin.copy:
+    src: /etc/fail2ban/jail.conf
+    dest: /etc/fail2ban/jail.conf.bak
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+    backup: true
+  tags:
+    - fail2ban
+    - security
+
+- name: Copy fail2ban configuration file
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart fail2ban
+  tags:
+    - fail2ban
+    - security
+
+- name: Copy unattended-upgrades configuration files in place..
+  tags: unattended-upgrades
+  ansible.builtin.template:
+    src: "templates/{{ item }}.j2"
+    dest: "/etc/apt/apt.conf.d/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - 20auto-upgrades
+    - 50unattended-upgrades
+
+- name: Add docker apt key.
+  tags: docker
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add docker apt repo.
+  tags: docker
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+    state: present
+    update_cache: true
+
+- name: Install docker and its dependencies.
+  tags: docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+
+- name: Start and enable docker daemon.
+  tags: docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Start and enable containerd daemon.
+  tags: docker
+  ansible.builtin.service:
+    name: containerd
+    state: started
+    enabled: true
+
+- name: Check if reboot is required
+  tags:
+    - rebootsystem
+    - always
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+
+- name: Reboot the server if needed
+  tags:
+    - rebootsystem
+    - never
+  become: true
+  ansible.builtin.reboot:
+    msg: "Reboot initiated by Ansible due to pending updates"
+    pre_reboot_delay: "{{ pre_reboot_delay | default(5) }}"
+    post_reboot_delay: "{{ post_reboot_delay | default(5) }}"
+    reboot_timeout: "{{ reboot_timeout | default(300) }}"
+  when: reboot_required_file.stat.exists
+  notify: Check server uptime
+
+- name: Wait for the reboot to complete
+  tags:
+    - rebootsystem
+    - never
+  ansible.builtin.wait_for_connection:
+    connect_timeout: "{{ connect_timeout | default(10) }}"
+    sleep: "{{ sleep_interval | default(5) }}"
+    delay: "{{ initial_delay | default(5) }}"
+    timeout: "{{ connection_timeout | default(300) }}"
+  when: reboot_required_file.stat.exists
+
+- name: Check the uptime of the server
+  tags:
+    - uptime
+    - never
+  ansible.builtin.command: uptime
+  register: uptime_result
+  changed_when: false
+
+- name: Display uptime result
+  tags:
+    - uptime
+    - never
+  ansible.builtin.debug:
+    var: uptime_result.stdout

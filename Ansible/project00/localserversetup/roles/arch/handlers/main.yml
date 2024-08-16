@@ -1,0 +1,9 @@
+- name: Reload_ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+
+- name: Reload_sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted

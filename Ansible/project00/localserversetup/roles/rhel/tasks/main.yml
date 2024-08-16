@@ -1,11 +1,11 @@
-- name: Perform full patching
-  tags: config
+- name: Perform full patching.
+  tags: patching
   ansible.builtin.package:
     name: '*'
     state: latest
 
 - name: Install needed applications using vars.
-  tags: config
+  tags: install_packages
   ansible.builtin.package:
     name: "{{ packages }}"
     state: present
@@ -17,6 +17,7 @@
       - rsyslog
       - yum-utils
       - bash-completion
+      - xsel
       - net-tools
       - perl
       - elfutils-libelf-devel
@@ -25,217 +26,259 @@
       - bind-utils
       - firewalld
       - dnf-automatic
-      - epel-release
+      # - epel-release
 
-- name: "include vars"
-  tags: create_users
-  ansible.builtin.include_vars:
-    file: vars/main.yml
-    name: users
-
-- name: "create ansible users"
-  tags: create_users
-  ansible.builtin.user:
-    name: "{{ item.name }}"
-    password: "{{ item.password }}"
-    shell: "{{ item.shell }}"
-    create_home: true
-    groups: "{{ item.groups }}"
+- name: Install fail2ban (RedHat).
+  tags: fail2ban
+  ansible.builtin.dnf:
+    name: fail2ban
     state: present
+    enablerepo: epel
+
+- name: Generate a random password
+  ansible.builtin.set_fact:
+    random_password: "{{ lookup('ansible.builtin.password', '/dev/null chars=ascii_letters,digits,punctuation length=24') }}"
+  no_log: true
+
+- name: Generate password hash
+  ansible.builtin.set_fact:
+    user_password_hash: "{{ random_password | password_hash('sha512') }}"
+  no_log: true
+
+- name: Add user {{ new_localsystem_rh_new_user }}
+  tags: createusers
+  ansible.builtin.user:
+    name: "{{ new_localsystem_rh_new_user }}"
+    shell: /usr/bin/zsh
+    home: "/home/{{ new_localsystem_rh_new_user }}"
+    password: "{{ user_password_hash }}"
+    create_home: true
+    state: present
+    groups: "{{ user_groups | default([]) }}"
+    append: true
     expires: -1
-  loop: "{{ users.vars.tab_users }}"
-  
-- name: "add ansible config fo tab users's home profile"
-  tags: create_users
-  template:
-    src: ansible.cfg.j2
-    dest: "/home/{{ item.name }}/.ansible.cfg"
-    owner: "{{ item.name }}"
-    group: "{{ item.name }}"
-    mode: '0660'
-  loop: "{{ users.vars.tab_users }}"
-  when: item.name == 'svc_ansible_tab_a'
+    generate_ssh_key: true
+    ssh_key_bits: 4096
+    ssh_key_type: rsa
+  no_log: true
 
-- name: Create .ssh folder if it does not exist
-  tags: create_users
-  ansible.builtin.file:
-    path: "/home/{{ item.name }}/.ssh"
-    state: directory
-    mode: '0700'
-    owner: "{{ item.name }}"
-    group: "{{ item.name }}"
-  loop: "{{ users.vars.tab_users }}"
-  when: item.name == 'svc_ansible_tab_a'
-
-- name: copy private key to .ssh
-  tags: create_users
-  copy:
-    src: id_rsa
-    dest: "/home/{{ item.name }}/.ssh/"
-    owner: "{{ item.name }}"
-    group: "{{ item.name }}"
+- name: Save password for later retrieval
+  ansible.builtin.copy:
+    content: >-
+      Password for {{ new_localsystem_rh_new_user }}: {{ random_password }}
+    dest: >-
+      /root/{{ new_localsystem_rh_new_user }}_password_{{
+      ansible_date_time.iso8601 | regex_replace('T', '_')
+      | regex_replace(':', '-')
+      | regex_replace('\\..*', '')
+      }}.txt
     mode: '0600'
-  loop: "{{ users.vars.tab_users }}"
-  when: item.name == 'svc_ansible_tab_a'
+  no_log: true
 
-- name: Add sudoer rule for new user
-  tags: create_users
+- name: Add SSH public key for user {{ new_localsystem_rh_new_user }}.
+  tags: createusers
+  ansible.posix.authorized_key:
+    user: "{{ new_localsystem_rh_new_user }}"
+    key: "{{ lookup('file', 'files/id_ed25519.pub') }}"
+    state: present
+
+- name: Add sudoer rule for new user.
+  tags: createusers
   ansible.builtin.template:
     src: sudoer.j2
-    dest: /etc/sudoers.d/{{ item.name }}
+    dest: /etc/sudoers.d/{{ new_localsystem_rh_new_user }}
     owner: root
     group: root
-    mode: 0440
+    mode: "0440"
     validate: /usr/sbin/visudo -csf %s
-  loop: "{{ users.vars.tab_users }}"
 
-- name: Create directories with correct ownership and permissions
-  tags: infra
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: wheel
-    mode: '0770'
-  loop:
-    - /roles/external
-    - /roles/internal
-
-- name: Check if .zshrc exists
-  tags: create_users
-  stat:
-    path: /home/{{ item.name }}/.zshrc
+- name: Check if .zshrc exists.
+  tags: createusers
+  ansible.builtin.stat:
+    path: /home/{{ new_localsystem_rh_new_user }}/.zshrc
   register: stat_rc_result
-  loop: "{{ users.vars.tab_users }}"
 
-- name: Cloning oh-my-zsh
-  tags: create_users
-  git:
-    repo: https://github.com/ohmyzsh/ohmyzsh
-    dest: /home/{{ item.name }}/.oh-my-zsh
-  loop: "{{ users.vars.tab_users }}"
+- name: Ensure oh-my-zsh is installed
+  tags: createusers
+  ansible.builtin.git:
+    repo: "https://github.com/robbyrussell/oh-my-zsh"
+    dest: "/home/{{ new_localsystem_rh_new_user }}/.oh-my-zsh"
+    version: "master"
+    depth: 1
+    force: false
+    update: false
 
-- name: Set Correct ownwership and permission to .oh-my-zsh
-  tags: create_users
-  ansible.builtin.file:
-    path: /home/{{ item.name }}/.oh-my-zsh
-    owner: "{{ item.name }}"
-    group: "{{ item.name }}"
-    mode: 0755
-    recurse: true
-  loop: "{{ users.vars.tab_users }}"
-
-- name: Copy .zshrc to home folder
-  tags: create_users
+- name: Copy .zshrc to home folder.
+  tags: createusers
   ansible.builtin.copy:
-    dest: /home/{{ item.name }}/.zshrc
+    dest: /home/{{ new_localsystem_rh_new_user }}/.zshrc
     src: .zshrc
-    owner: "{{ item.name }}"
-    group: "{{ item.name }}"
-    mode: 0440
-  loop: "{{ users.vars.tab_users }}"
+    owner: "{{ new_localsystem_rh_new_user }}"
+    group: "{{ new_localsystem_rh_new_user }}"
+    mode: "0440"
 
-- name: Check if zsh-autosuggestions exists
-  tags: create_users
-  stat:
-    path: /home/{{ item.name }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions
-  register: stat_zsh_autosuggestions_result
-  loop: "{{ users.vars.tab_users }}"
+- name: Ensure zsh-autosuggestions plugin is installed
+  tags: createusers
+  ansible.builtin.git:
+    repo: "https://github.com/zsh-users/zsh-autosuggestions"
+    dest: "/home/{{ new_localsystem_rh_new_user }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    version: "master"
+    depth: 1
+    force: false
+    update: false
 
-- name: Clone zsh-autosuggestions github repository
-  tags: create_users
-  git:
-    repo: https://github.com/zsh-users/zsh-autosuggestions
-    dest: /home/{{ item.name }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions
-    clone: true
-    update: true
-    force: true
-  loop: "{{ users.vars.tab_users }}"
-
-- name: Set Correct ownwership and permission to zsh-autosuggestions
-  tags: create_users
+- name: Set correct ownership for .oh-my-zsh directory
   ansible.builtin.file:
-    path: /home/{{ item.name }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions
-    owner: "{{ item.name }}"
-    group: "{{ item.name }}"
-    mode: 0755
+    path: "/home/{{ new_localsystem_rh_new_user }}/.oh-my-zsh"
+    owner: "{{ new_localsystem_rh_new_user }}"
+    group: "{{ new_localsystem_rh_new_user }}"
     recurse: true
-  loop: "{{ users.vars.tab_users }}"
+    state: directory
 
-# - name: Add hardened SSH config
-#   tags: ssh_hardening
-#   ansible.builtin.copy:
-#     dest: /etc/ssh/sshd_config
-#     src: etc/ssh/centos/sshd_config
-#     owner: root
-#     group: root
-#     mode: 0600
-#   notify: reload_sshd
+- name: Add hardened SSH config.
+  tags: ssh_hardening
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config
+    src: etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload_sshd
 
-- name: Set a message of the day
+- name: Set a message of the day.
   tags: banners
   ansible.builtin.template:
     dest: /etc/motd
-    src: templates/motd.j2
+    src: motd.j2
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
-- name: Set a login banner
+- name: Set a login banner.
   tags: banners
   ansible.builtin.copy:
     dest: "{{ item }}"
     src: etc/issue
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   with_items:
     - /etc/issue.net
 
-- name: Make sure rsyslog is started and enabled
+- name: Make sure rsyslog is started and enabled.
   tags: enablelogging
   ansible.builtin.service:
     name: rsyslog
     state: started
     enabled: true
 
+- name: Start and enable Firewall Service.
+  tags: firewallrules
+  ansible.builtin.service:
+    name: "{{ new_localsystem_rh_firewall_pkg }}"
+    enabled: true
+    state: started
+
+- name: Allow TCP/UDP ports through firewall.
+  tags: firewallrules
+  ansible.posix.firewalld:
+    state: "{{ item.state }}"
+    port: "{{ item.port }}"
+    zone: public
+    immediate: true
+    permanent: true
+  with_items:
+    - { state: 'enabled', port: '22/tcp' }
+    - { state: 'enabled', port: '80/tcp' }
+    - { state: 'enabled', port: '443/tcp' }
+    - { state: 'enabled', port: '123/udp' }
+
+- name: Ensure fail2ban is running and enabled on boot
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  tags:
+    - firewallrules
+    - fail2ban
+
+- name: Create a copy of the default fail2ban configuration file
+  ansible.builtin.copy:
+    src: /etc/fail2ban/jail.conf
+    dest: /etc/fail2ban/jail.local
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - fail2ban
+  register: fail2ban_config_copy
+
+- name: Configure fail2ban jail settings
+  ansible.builtin.lineinfile:
+    path: /etc/fail2ban/jail.local
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^bantime\s*=', line: 'bantime = 86400' }
+    - { regexp: '^findtime\s*=', line: 'findtime = 5m' }
+    - { regexp: '^maxretry\s*=', line: 'maxretry = 3' }
+    - { regexp: '^backend\s*=', line: 'backend = polling' }
+  tags:
+    - fail2ban
+  notify: Restart fail2ban
+
+- name: Enable sshd jail
+  ansible.builtin.lineinfile:
+    path: /etc/fail2ban/jail.local
+    insertafter: '^\[sshd\]'
+    line: 'enabled = true'
+  tags:
+    - fail2ban
+  notify: Restart fail2ban
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+
 - name: Ensure dnf-automatic is running and enabled on boot.
   tags: dnf-automatic
   ansible.builtin.service:
     name: dnf-automatic-install.timer
     state: started
-    enabled: yes
+    enabled: true
 
-- name: Check to see if we need a reboot
-  tags: rebootsystem
-  command: needs-restarting -r
-  register: result
-  ignore_errors: true
+- name: Check if system needs reboot
+  ansible.builtin.command:
+    cmd: needs-restarting -r
+  register: reboot_required
+  changed_when: false
+  failed_when: false
+  tags:
+    - rebootsystem
 
-- name: Display result
-  tags: rebootsystem
-  debug:
-    var: result.rc
+- name: Display reboot requirement status
+  ansible.builtin.debug:
+    msg: "System requires reboot: {{ 'Yes' if reboot_required.rc == 1 else 'No' }}"
+  tags:
+    - rebootsystem
 
 - name: Reboot the server
-  tags: rebootsystem
-  become_user: root
-  shell: "sleep 5 && reboot"
-  async: 1
-  poll: 0
-  when: result.rc == 1
+  ansible.builtin.reboot:
+    msg: "Rebooting server due to system updates"
+    pre_reboot_delay: 5
+    post_reboot_delay: 30
+    reboot_timeout: 600
+  when: reboot_required.rc == 1
+  tags:
+    - rebootsystem
 
-- name: Wait for the reboot to complete if there was a change.
-  tags: rebootsystem
-  wait_for_connection:
-    connect_timeout: 10
-    sleep: 5
-    delay: 5
-    timeout: 300
-  when: result.rc == 1
+- name: Check uptime of the servers
+  ansible.builtin.command:
+    cmd: uptime
+  register: uptime_result
+  changed_when: false
 
-- name: Check the Uptime of the servers
-  shell: "uptime"
-  register: Uptime
-
-- debug: var=Uptime
+- name: Display server uptime
+  ansible.builtin.debug:
+    var: uptime_result.stdout

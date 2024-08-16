@@ -1,0 +1,7 @@
+---
+new_localsystem_arch_new_user: "daemontamer"
+
+# Arch group_vars
+new_localsystem_arch_admin_group: wheel
+new_localsystem_arch_firewall_pkg: ufw
+new_localsystem_arch_ssh_service: sshd

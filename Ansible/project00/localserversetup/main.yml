@@ -3,4 +3,9 @@
   hosts: all
   become: true
   roles:
-    - { role: rhel, when: ansible_distribution == "Rocky" or ansible_distribution == "AlmaLinux" }
+    - role: rhel
+      when: ansible_distribution == "Rocky" or ansible_distribution == "AlmaLinux"
+    - role: debian
+      when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+    - role: arch
+      when: ansible_distribution == "Archlinux" or ansible_distribution == "Manjaro"

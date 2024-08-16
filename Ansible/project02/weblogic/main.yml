@@ -10,16 +10,16 @@
     - name: install updates (RHEL version 8 and higher)
       when: ansible_distribution_version > '8'
       tags: always
-      dnf:
-        update_only: yes
-        update_cache: yes
+      ansible.builtin.dnf:
+        update_only: true
+        update_cache: true
 
     - name: install updates (RHEL version 7.9 and lower)
       when: ansible_distribution_version == '7.9'
       tags: always
       ansible.builtin.dnf:
-        update_only: yes
-        update_cache: yes
+        update_only: true
+        update_cache: true
 
   tasks:
     - import_tasks: tasks/bootstrap.yml

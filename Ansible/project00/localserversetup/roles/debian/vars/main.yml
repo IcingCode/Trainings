@@ -1,0 +1,7 @@
+---
+new_localsystem_debian_new_user: "daemontamer"
+
+# Debian group_vars
+new_localsystem_debian_admin_group: sudo
+new_localsystem_debian_firewall_pkg: ufw
+new_localsystem_debian_ssh_service: ssh

@@ -10,13 +10,13 @@
   unarchive:
     src: "{{ JAVA_BASE }}/{{ jdk_tarversion }}-linux-x64.tar.gz"
     dest: "{{ JAVA_BASE }}"
-    copy: no
+    copy: false
     owner: oracle
     group: oinstall
 
 - name: Remove old symlink
   file:
-    path: "{{ JAVA_BASE }}/{{ jdk_version }}" 
+    path: "{{ JAVA_BASE }}/{{ jdk_version }}"
     state: absent
 
 - name: Create symlink for JDK
@@ -34,4 +34,4 @@
     path: "{{ JAVA_BASE }}/{{ jdk_version }}/jre/lib/security/java.security"
     regex: '^securerandom.source='
     line: 'securerandom.source=file:/dev/./random'
-    backup: yes
+    backup: true

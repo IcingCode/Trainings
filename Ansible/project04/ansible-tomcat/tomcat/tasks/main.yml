@@ -216,7 +216,7 @@
     src: tomcat-users.xml.j2
     dest: "{{ CATALINA_BASE }}/conf/tomcat-users.xml"
     mode: '0640'
-  notify: restart tomcat
+  notify: Restart tomcat
   tags:
     - config
     - security
