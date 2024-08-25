@@ -1,0 +1,368 @@
+- name: Perform full patching
+  ansible.builtin.package:
+    name: '*'
+    state: latest
+
+- name: Install needed applications using vars.
+  ansible.builtin.package:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - vim
+      - zsh
+      - git
+      - rsyslog
+      - yum-utils
+      - bash-completion
+      - net-tools
+      - perl
+      - elfutils-libelf-devel
+      - tar
+      - bzip2
+      - bind-utils
+      - firewalld
+      - dnf-automatic
+      - epel-release
+      - wget
+      - binutils
+      - gcc
+      - gcc-c++
+      - glibc
+      - glibc-devel
+      - libaio
+      - libaio-devel
+      - libgcc
+      - libstdc++
+      - libstdc++-devel
+      - libnsl
+      - ksh
+      - sysstat
+      - numactl
+      - numactl-devel
+      - motif
+      - motif-devel
+      - redhat-lsb
+      - redhat-lsb-core
+      - openssl
+      - make
+      - xorg-x11-server-utils
+      - xorg-x11-xauth
+      - xterm
+    ignore_errors: true
+# User and groups tasks
+- name: Create oinstall group
+  group:
+    name: oinstall
+    gid: 105
+    state: present
+
+- name: Add user oracle
+  ansible.builtin.user:
+    name: oracle
+    shell: /bin/bash
+    uid: 201
+    groups: oinstall
+    expires: -1
+    home: /home/oracle
+    password: $6$28HZxmElEYp37PJD$xNvhxWcMsvFoikTEgQw139A/LZVi.8.Dg3utZrlHbbtTnkYKrk0GmMcwsCqBtwsP/FeKJm9CrWj6OCYEIE3Xs0
+    create_home: true
+    state: present
+
+- name: Add user vagrant
+  ansible.builtin.user:
+    name: vagrant
+    shell: /usr/bin/zsh
+    home: /home/vagrant
+    password: $6$dOoodFWPv/eaWxVL$s7SQ0.EIbKIUuNs0d1H6K4OwLbob3KeK3PuYgpRF3aTY7GnpaMRlU0X5kG1IWTbhyhrgsHXpRx98OCnF6H7/H0
+    create_home: true
+    state: present
+
+- name: Add sudoer rule for ansible user
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/vagrant
+    src: etc/sudoers.d/vagrant
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Check if .zshrc exists
+  ansible.builtin.stat:
+    path: /home/vagrant/.zshrc
+  register: zshrc_result
+
+- name: Check if .oh-my-zsh exists
+  ansible.builtin.stat:
+    path: /home/vagrant/.oh-my-zsh
+  register: oh_my_zsh_result
+
+- name: Cloning oh-my-zsh
+  ansible.builtin.git:
+    repo: https://github.com/robbyrussell/oh-my-zsh
+    dest: /home/vagrant/.oh-my-zsh
+  when: falset oh_my_zsh_result.stat.exists
+
+- name: Set Correct ownwership and permission to .oh-my-zsh
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh
+    owner: vagrant
+    group: vagrant
+    mode: "0750"
+    recurse: true
+
+- name: Copy .zshrc to home folder
+  ansible.builtin.copy:
+    dest: /home/vagrant/.zshrc
+    src: .zshrc
+    owner: vagrant
+    group: vagrant
+    mode: "0440"
+
+- name: Check if zsh-autosuggestions exists
+  ansible.builtin.stat:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+  register: stat_zsh_autosuggestions_result
+
+- name: Clone zsh-autosuggestions github repository
+  ansible.builtin.git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+    dest: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    clone: true
+    update: true
+    force: true
+  when: falset stat_zsh_autosuggestions_result.stat.exists
+
+- name: Set Correct ownwership and permission to zsh-autosuggestions
+  ansible.builtin.file:
+    path: /home/vagrant/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+    owner: vagrant
+    group: vagrant
+    mode: "0750"
+    recurse: true
+
+- name: Set Shell to zsh
+  ansible.builtin.user:
+    name: vagrant
+    shell: /usr/bin/zsh
+
+- name: Set a message of the day
+  ansible.builtin.template:
+    dest: /etc/motd
+    src: templates/motd.j2
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Set a login banner
+  ansible.builtin.copy:
+    dest: "{{ item }}"
+    src: etc/issue
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - /etc/issue.net
+
+- name: Make sure rsyslog is started and enabled
+  ansible.builtin.service:
+    name: rsyslog
+    state: started
+    enabled: true
+
+# Directory Tasks
+- name: Create /home/oracle/dba if it does not exist
+  ansible.builtin.file:
+    path: /home/oracle/dba
+    state: directory
+    mode: "0755"
+    owner: oracle
+    group: oinstall
+
+- name: Create /home/oracle/log if it does not exist
+  ansible.builtin.file:
+    path: /home/oracle/log
+    state: directory
+    mode: "0755"
+    owner: oracle
+    group: oinstall
+
+- name: Create /u01 if it does not exist
+  ansible.builtin.file:
+    path: /u01
+    state: directory
+    mode: "0755"
+    owner: root
+    group: oinstall
+
+- name: Create $LOG_BASE (/u01/logs) if it does not exist
+  ansible.builtin.file:
+    path: /u01/logs
+    state: directory
+    mode: "0755"
+    owner: oracle
+    group: oinstall
+
+- name: Create $ORACLE_BASE (/u01/app/oracle) if it does not exist
+  ansible.builtin.file:
+    path: /u01/app/oracle
+    state: directory
+    mode: "0755"
+    owner: oracle
+    group: oinstall
+
+- name: Create $ORACLE_HOME(/u01/app/oracle/product/{{ oracle_version }}/fmw)
+  ansible.builtin.file:
+    path: '/u01/app/oracle/product/{{ oracle_version }}/fmw'
+    state: directory
+    mode: "0755"
+    owner: oracle
+    group: oinstall
+
+- name: Create $JAVA_BASE (/u01/app/oracle/product/{{ oracle_version }}/fmwjava)
+  ansible.builtin.file:
+    path: /u01/app/oracle/product/{{ oracle_version }}/fmwjava/
+    state: directory
+    mode: "0755"
+    owner: oracle
+    group: oinstall
+# Create file structure
+- name: Copy .bash_profile file
+  ansible.builtin.template:
+    src: templates/bash_profile.j2
+    dest: /home/oracle/.bash_profile
+    owner: oracle
+    group: oracle
+    mode: "0644"
+- name: Copy .bashrc file
+  ansible.builtin.template:
+    src: templates/bashrc.j2
+    dest: /home/oracle/.bashrc
+    owner: oracle
+    group: oracle
+    mode: "0644"
+- name: Create /etc/oraInst.loc
+  lineinfile:
+    path: /etc/oraInst.loc
+    line: "inventory_loc=/u01/app/oracle/oraInventory"
+    create: true
+    owner: oracle
+    group: oracle
+    mode: "0644"
+
+- name: Add inst_group to /etc/oraInst.loc
+  lineinfile:
+    path: /etc/oraInst.loc
+    line: "inst_group=oinstall"
+    insertafter: "inventory_loc=/u01/app/oracle/oraInventory"
+    create: false
+    owner: oracle
+    group: oinstall
+    mode: "0644"
+
+# - name: Generate /etc/oraInst.loc
+#   ansible.builtin.template:
+#     src: oraInst.loc.j2
+#     dest: /etc/oraInst.loc
+#     owner: oracle
+#     group: oinstall
+#     mode: "0644"
+- name: Copy 99-oracle.conf to /etc/security/limits.d
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/99-oracle.conf
+    src: files/etc/security/limits.d/99-oracle.conf
+    owner: root
+    group: root
+    mode: "0640"
+# Update sysctl settings
+- name: Update sysctl.conf file
+  lineinfile:
+    dest: /etc/sysctl.conf
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - "net.core.rmem_max=2097152"
+    - "net.core.wmem_max=2097152"
+  notify: restart_sysctl
+
+# JDK setup
+- name: Copy JDK file
+  ansible.builtin.copy:
+    src: files/u01/app/oracle/product/{{ oracle_version }}/fmwjava/{{ jdk_tarversion }}-linux-x64.tar.gz
+    dest: "{{ JAVA_BASE }}/{{ jdk_tarversion }}-linux-x64.tar.gz"
+    remote_src: false
+    owner: oracle
+    group: oinstall
+
+- name: Untar JDK file
+  unarchive:
+    src: "{{ JAVA_BASE }}/{{ jdk_tarversion }}-linux-x64.tar.gz"
+    dest: "{{ JAVA_BASE }}"
+    copy: false
+    owner: oracle
+    group: oinstall
+
+- name: Remove old symlink
+  file:
+    path: "{{ JAVA_BASE }}/{{ jdk_version }}"
+    state: absent
+
+- name: Create symlink for JDK
+  become: true
+  file:
+    src: "{{ JAVA_BASE }}/{{ jdk_version }}_{{ jdk_uversion }}"
+    dest: "{{ JAVA_BASE }}/{{ jdk_version }}"
+    state: link
+    owner: oracle
+    group: oinstall
+    follow: false
+
+- name: Update securerandom.source property
+  lineinfile:
+    path: "{{ JAVA_BASE }}/{{ jdk_version }}/jre/lib/security/java.security"
+    regex: '^securerandom.source='
+    line: 'securerandom.source=file:/dev/./random'
+    backup: true
+
+# Setup security updates with dnf-automatic
+- name: Ensure dnf-automatic is running and enabled on boot.
+  ansible.builtin.service:
+    name: dnf-automatic-install.timer
+    state: started
+    enabled: true
+
+#check if restart is needed
+- name: Check if system needs reboot
+  ansible.builtin.command:
+    cmd: needs-restarting -r
+  register: reboot_required
+  changed_when: false
+  failed_when: false
+  tags:
+    - rebootsystem
+
+- name: Display reboot requirement status
+  ansible.builtin.debug:
+    msg: "System requires reboot: {{ 'Yes' if reboot_required.rc == 1 else 'No' }}"
+  tags:
+    - rebootsystem
+
+- name: Reboot the server
+  ansible.builtin.reboot:
+    msg: "Rebooting server due to system updates"
+    pre_reboot_delay: 5
+    post_reboot_delay: 30
+    reboot_timeout: 600
+  when: reboot_required.rc == 1
+  tags:
+    - rebootsystem
+
+- name: Check uptime of the servers
+  ansible.builtin.command:
+    cmd: uptime
+  register: uptime_result
+  changed_when: false
+
+- name: Display server uptime
+  ansible.builtin.debug:
+    var: uptime_result.stdout

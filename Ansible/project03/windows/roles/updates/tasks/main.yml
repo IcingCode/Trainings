@@ -6,15 +6,15 @@
   register: windows_version
 
 - name: Remove leading and trailing spaces from Windows version
-  set_fact:
+  ansible.builtin.set_fact:
     trimmed_windows_version: "{{ windows_version.stdout | trim }}"
 
 - name: Display Windows Version
-  debug:
+  ansible.builtin.debug:
     msg: "Windows Version: {{ trimmed_windows_version }}"
-    
+
 - name: Check if Windows version is supported
-  fail:
+  ansible.builtin.fail:
     msg: "Unsupported Windows version. This playbook only supports Windows 10 and Windows 11."
   when: windows_version.stdout.find('10') != -1
 
@@ -22,19 +22,19 @@
   block:
     - name: Check if the correct Windows version
       when: windows_version.stdout.find('10') != -1
-      win_updates:
+      ansible.windows.win_updates:
         category_names: "CriticalUpdates,SecurityUpdates,UpdateRollups"
         state: installed
       register: update_result
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: Fail the playbook if the update failed for Windows
-      fail:
+      ansible.builtin.fail:
         msg: "Update failed on Windows 11"
       when: update_result is failed
 
 - name: Install all critical and security updates
-  win_updates:
+  ansible.windows.win_updates:
     category_names:
     - CriticalUpdates
     - SecurityUpdates
@@ -42,5 +42,5 @@
   register: update_result
 
 - name: Reboot host if required
-  win_reboot:
+  ansible.windows.win_reboot:
   when: update_result.reboot_required
