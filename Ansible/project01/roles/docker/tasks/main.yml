@@ -1,46 +1,48 @@
-- name: set mydistribution
+- name: Set mydistribution variable based on distribution
   ansible.builtin.set_fact:
-    mydistribution: "{{ 'centos' if (ansible_distribution == 'Rocky') else (ansible_distribution | lower) }}"
-  
-- name: Add signing key
-  ansible.builtin.rpm_key:
-    key: "https://download.docker.com/linux/{{ mydistribution }}/gpg"
-    state: present
-  when: ansible_os_family == "RedHat"
+    mydistribution: "{{ 'centos' if ansible_distribution == 'Rocky' else ansible_distribution_lower }}"
 
-- name: Add repository into repo.d list
+- name: Add Docker signing key for RedHat-based systems
+  ansible.builtin.rpm_key:
+    key: "{{ docker_gpg_key_url }}"
+    state: present
+  when: is_redhat
+
+- name: Add Docker repository to yum.repos.d
   ansible.builtin.yum_repository:
     name: docker
-    description: docker repository
-    baseurl: "https://download.docker.com/linux/{{ mydistribution }}/$releasever/$basearch/stable"
+    description: Docker Repository
+    baseurl: "{{ docker_base_url }}"
     enabled: true
     gpgcheck: true
-    gpgkey: "https://download.docker.com/linux/{{ mydistribution }}/gpg"
-  when: ansible_os_family == "RedHat"
+    gpgkey: "{{ docker_gpg_key_url }}"
+  when: is_redhat
 
-- name: install prerequisites for Docker repository
+- name: Install prerequisites for Docker on Debian-based systems
   ansible.builtin.apt:
     pkg:
       - ca-certificates
       - curl
       - gnupg2
       - lsb-release
-  when: ansible_os_family == "Debian"
-
-- name: add docker apt key
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
-  when: ansible_os_family == "Debian"
-
-- name: add docker apt repo
-  apt_repository:
-    repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
     state: present
     update_cache: yes
-  when: ansible_os_family == "Debian"
+  when: is_debian
 
-- name: install docker and its dependencies
+- name: Add Docker APT key for Debian-based systems
+  ansible.builtin.apt_key:
+    url: "https://download.docker.com/linux/ubuntu/gpg"
+    state: present
+  when: is_debian
+
+- name: Add Docker APT repository for Debian-based systems
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution_lower }} {{ ansible_distribution_release }} stable"
+    state: present
+    update_cache: yes
+  when: is_debian
+
+- name: Install Docker and dependencies
   ansible.builtin.package:
     name:
       - docker-ce
@@ -49,43 +51,42 @@
       - docker-compose-plugin
     state: present
 
-- name: start and enable Docker
+- name: Start and enable Docker service
   ansible.builtin.service:
     name: docker
     state: started
     enabled: yes
 
-- name: start and enable containerd daemon
+- name: Start and enable containerd service
   ansible.builtin.service:
     name: containerd
     state: started
     enabled: yes
 
-- name: adding user vagrant to docker group
+- name: Add user vagrant to docker group
   ansible.builtin.user:
     name: vagrant
     groups: docker
-    append: true
+    append: yes
 
-- name: deploy nginx docker container
-  docker_container:
+- name: Deploy Nginx Docker container
+  community.docker.docker_container:
     image: nginx:stable
     name: nginx
     state: started
-    auto_remove: true
+    auto_remove: yes
     ports:
       - "8080:80"
 
-# Deploy Portainer
 - name: Create Portainer data directory
-  file:
-    path: /home/vagrant/docker/portainer/portainer-data
+  ansible.builtin.file:
+    path: "{{ portainer_data_directory }}"
     state: directory
     owner: vagrant
     group: vagrant
 
 - name: Deploy Portainer container
-  docker_container:
+  community.docker.docker_container:
     name: portainer
     image: portainer/portainer-ce:latest
     restart_policy: unless-stopped
@@ -94,6 +95,6 @@
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /home/vagrant/docker/portainer/portainer-data:/data
+      - "{{ portainer_data_directory }}:/data"
     ports:
-      - 9000:9000
+      - "9000:9000"

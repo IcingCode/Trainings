@@ -1,2 +1,4 @@
 ---
-# vars file for docker
+ansible_distribution_lower: "{{ ansible_distribution | lower }}"
+is_redhat: "{{ ansible_os_family == 'RedHat' }}"
+is_debian: "{{ ansible_os_family == 'Debian' }}"

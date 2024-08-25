@@ -1,0 +1,4 @@
+---
+docker_gpg_key_url: "https://download.docker.com/linux/{{ mydistribution }}/gpg"
+docker_base_url: "https://download.docker.com/linux/{{ mydistribution }}/$releasever/$basearch/stable"
+portainer_data_directory: "/home/vagrant/docker/portainer/portainer-data"
