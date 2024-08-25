@@ -3,10 +3,7 @@
   hosts: remote
   gather_facts: true
   become: true
-  vars_files:
-    - vars/main.yml
-    - vars/docker.yml
 
   roles:
-    - role: docker
+    - role: weblogic
       when: ansible_os_family == "RedHat"

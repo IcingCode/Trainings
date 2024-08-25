@@ -8,3 +8,19 @@ application2_name: "RP"
 application3_name: "WS"
 domain_name: "EC_DOMAIN"
 JAVA_BASE: "/u01/app/oracle/product/12.2.1/fmwjava"
+# User and Group Variables
+oracle_user:
+  name: oracle
+  uid: 201
+  group: oinstall
+  shell: /bin/bash
+  home: /home/oracle
+
+vagrant_user:
+  name: vagrant
+  shell: /usr/bin/zsh
+  home: /home/vagrant
+
+oracle_group:
+  name: oinstall
+  gid: 105
