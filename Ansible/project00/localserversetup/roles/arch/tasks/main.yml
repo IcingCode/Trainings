@@ -50,9 +50,9 @@
 - name: Save password for later retrieval
   ansible.builtin.copy:
     content: >-
-      Password for {{ new_localsystem_arch_ssh_new_user }}: {{ random_password }}
+      Password for {{ new_localsystem_arch_new_user }}: {{ random_password }}
     dest: >-
-      /root/{{ new_localsystem_arch_ssh_new_user }}_password_{{
+      /root/{{ new_localsystem_arch_new_user }}_password_{{
       ansible_date_time.iso8601 | regex_replace('T', '_')
       | regex_replace(':', '-')
       | regex_replace('\\..*', '')
