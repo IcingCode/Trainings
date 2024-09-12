@@ -1,0 +1,312 @@
+---
+- name: Add EPEL repository
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+  tags:
+    - setup
+    - epel
+
+- name: Install basic packages
+  ansible.builtin.package:
+    name: "{{ basic_packages }}"
+    state: present
+  tags:
+    - setup
+    - packages
+
+- name: Add tomcat group
+  ansible.builtin.group:
+    name: "{{ tomcat_group }}"
+    state: present
+  tags:
+    - setup
+    - users
+
+- name: Add tomcat user
+  ansible.builtin.user:
+    name: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    groups: "{{ tomcat_additional_groups | default(['systemd-journal']) }}"
+    append: true
+    home: "{{ tomcat_home }}"
+    create_home: true
+    system: true
+  tags:
+    - setup
+    - users
+
+- name: Create JDK directory
+  ansible.builtin.file:
+    path: "{{ JAVA_BASE }}/jdk"
+    state: directory
+    mode: '0755'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - java
+
+- name: Copy JDK file
+  ansible.builtin.copy:
+    src: "jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    dest: "/tmp/jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    remote_src: false
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0644'
+  tags:
+    - setup
+    - java
+
+- name: Untar JDK file
+  ansible.builtin.unarchive:
+    src: "/tmp/jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    dest: "{{ JAVA_BASE }}/jdk"
+    remote_src: true
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - java
+
+- name: Remove old symlink
+  ansible.builtin.file:
+    path: "{{ JAVA_BASE }}/java"
+    state: absent
+  tags:
+    - setup
+    - java
+
+- name: Create symlink for JDK
+  ansible.builtin.file:
+    src: "{{ JAVA_BASE }}/jdk/jdk-{{ jdk_untarred_version }}"
+    dest: "{{ JAVA_BASE }}/java"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - java
+
+- name: Download Tomcat
+  ansible.builtin.get_url:
+    url: "{{ tomcat_archive_url }}"
+    dest: "{{ tomcat_archive_dest }}"
+    mode: '0644'
+  tags:
+    - setup
+    - tomcat
+
+- name: Create Tomcat directory
+  ansible.builtin.file:
+    path: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - tomcat
+
+- name: Extract tomcat archive
+  ansible.builtin.unarchive:
+    src: "{{ tomcat_archive_dest }}"
+    dest: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    remote_src: true
+    extra_opts: "--strip-components=1"
+    creates: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}/bin"
+  tags:
+    - setup
+    - tomcat
+
+- name: Create symlink for Apache Tomcat
+  ansible.builtin.file:
+    src: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    dest: "{{ TOMCAT_BASE }}/tomcat"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - tomcat
+
+- name: Copy tomcat bashrc file
+  ansible.builtin.template:
+    src: templates/bashrc.j2
+    dest: "/home/{{ tomcat_user }}/.bashrc"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_user }}"
+    mode: '0644'
+  tags:
+    - config
+    - bashrc
+
+- name: Copy tomcat service file
+  ansible.builtin.template:
+    src: templates/tomcat.service.j2
+    dest: /etc/systemd/system/tomcat.service
+    mode: '0644'
+  when: ansible_service_mgr == "systemd"
+  tags:
+    - config
+    - service
+
+- name: Copy setenv file
+  ansible.builtin.template:
+    src: templates/setenv.sh.j2
+    dest: "{{ TOMCAT_BASE }}/tomcat/bin/setenv.sh"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_user }}"
+    mode: '0750'
+  tags:
+    - config
+
+- name: Add sudoers file for tomcat
+  ansible.builtin.copy:
+    src: files/tomcat
+    dest: /etc/sudoers.d/tomcat
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -csf %s
+  tags:
+    - config
+    - security
+
+- name: Start and enable tomcat
+  ansible.builtin.systemd:
+    name: tomcat
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: ansible_service_mgr == "systemd"
+  tags:
+    - service
+
+- name: Start and enable firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  when: ansible_service_mgr == "systemd"
+  tags:
+    - service
+    - firewall
+
+- name: Open tomcat ports on the firewall
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - 80/tcp
+    - 443/tcp
+    - 8080/tcp
+    - 8443/tcp
+  when: ansible_service_mgr == "systemd"
+  tags:
+    - firewall
+
+- name: Set UI access credentials
+  ansible.builtin.template:
+    src: tomcat-users.xml.j2
+    dest: "{{ CATALINA_BASE }}/conf/tomcat-users.xml"
+    mode: '0640'
+  notify: Restart tomcat
+  tags:
+    - config
+    - security
+
+- name: Allow access to Manager and Host Manager apps from any IP
+  ansible.builtin.template:
+    src: context.xml.j2
+    dest: "{{ item }}"
+    mode: '0640'
+  loop:
+    - "{{ CATALINA_BASE }}/webapps/host-manager/META-INF/context.xml"
+    - "{{ CATALINA_BASE }}/webapps/manager/META-INF/context.xml"
+    - "{{ CATALINA_BASE }}/webapps/examples/META-INF/context.xml"
+  notify: restart tomcat
+  tags:
+    - config
+    - security
+
+- name: Set unprivileged port start and reload sysctl
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_unprivileged_port_start
+    value: '443'
+    sysctl_set: true
+    state: present
+    reload: true
+  tags:
+    - config
+    - security
+
+- name: Check current Tomcat version
+  ansible.builtin.command: "{{ TOMCAT_BASE }}/tomcat/bin/version.sh"
+  register: tomcat_current_version
+  changed_when: false
+  tags:
+    - version
+    - upgrade
+
+- name: Compare Tomcat versions
+  ansible.builtin.set_fact:
+    upgrade_required: "{{ tomcat_current_version.stdout.split('\n')[0].split(':')[1].strip() is version('tomcat_ver', '<') }}"
+  tags:
+    - version
+    - upgrade
+
+- name: Prompt for Tomcat upgrade
+  ansible.builtin.pause:
+    prompt: "Current Tomcat version is older than {{ tomcat_ver }}. Do you want to proceed with the upgrade? (yes/no)"
+  register: upgrade_prompt
+  when: upgrade_required
+  tags:
+    - version
+    - upgrade
+
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "/home/{{ tomcat_user }}/backups/tomcat_upgrades"
+    state: directory
+    mode: '0750'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - backup
+    - upgrade
+
+- name: Backup important Tomcat files
+  community.general.archive:
+    path:
+      - "{{ CATALINA_BASE }}/conf"
+      - "{{ CATALINA_BASE }}/webapps"
+      - "{{ CATALINA_BASE }}/bin/setenv.sh"
+    dest: "/home/{{ tomcat_user }}/backups/tomcat_upgrades/tomcat_backup_pre_upgrade_{{ ansible_date_time.date }}.tar.gz"
+    format: gz
+    mode: '0640'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  when: upgrade_prompt.user_input | default('no') | lower == 'yes'
+  tags:
+    - backup
+    - upgrade
+
+- name: Set backup file path
+  ansible.builtin.set_fact:
+    tomcat_backup_file: "/home/{{ tomcat_user }}/backups/tomcat_upgrades/tomcat_backup_pre_upgrade_{{ ansible_date_time.date }}.tar.gz"
+  when: upgrade_prompt.user_input | default('no') | lower == 'yes'
+  tags:
+    - backup
+    - upgrade
+
+- name: Perform Tomcat upgrade
+  ansible.builtin.include_tasks: upgrade_tomcat.yml
+  when: upgrade_prompt.user_input | default('no') | lower == 'yes'
+  tags:
+    - upgrade

@@ -1,0 +1,54 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "rockylinux/9"
+  config.ssh.insert_key = false
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  config.vm.provider :virtualbox do |v|
+    v.memory = 1024
+    v.linked_clone = true
+  end
+
+  # Controller server (Ansible Controller)
+  config.vm.define "controller" do |controller|
+    controller.vm.hostname = "ansible-controller.local"
+    controller.vm.network :private_network, ip: "192.168.60.100"
+    controller.vm.provision "shell", inline: <<-SHELL
+	    sudo dnf update -y
+      sudo dnf install -y epel-release
+      sudo dnf install -y ansible
+    SHELL
+  end
+
+  # Database server (MySQL)
+  config.vm.define "db01" do |db|
+    db.vm.hostname = "mysql.local"
+    db.vm.network :private_network, ip: "192.168.60.101"
+  end
+
+  # Caching server (Memcache)
+  config.vm.define "memcache" do |memcache|
+    memcache.vm.hostname = "memcache.local"
+    memcache.vm.network :private_network, ip: "192.168.60.102"
+  end
+
+  # Message Broker server (RabbitMQ)
+  config.vm.define "rabbitmq" do |rabbitmq|
+    rabbitmq.vm.hostname = "rabbitmq.local"
+    rabbitmq.vm.network :private_network, ip: "192.168.60.103"
+  end
+
+  # Application server (Tomcat)
+  config.vm.define "tomcat" do |tomcat|
+    tomcat.vm.hostname = "tomcat.local"
+    tomcat.vm.network :private_network, ip: "192.168.60.104"
+  end
+
+  # Web server (Nginx)
+  config.vm.define "nginx" do |nginx|
+    nginx.vm.hostname = "nginx.local"
+    nginx.vm.network :private_network, ip: "192.168.60.105"
+  end
+end

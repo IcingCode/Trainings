@@ -1,0 +1,82 @@
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+
+# User specific environment
+if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
+then
+    PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+fi
+export PATH
+
+# Uncomment the following line if you don't like systemctl's auto-paging feature:
+# export SYSTEMD_PAGER=
+
+# User specific aliases and functions
+umask 0027
+
+# Specify colors
+red=$'\e[1;31m'
+green=$'\e[1;32m'
+blue=$'\e[1;34m'
+magenta=$'\e[1;35m'
+cyan=$'\e[1;36m'
+yellow=$'\e[1;93m'
+white=$'\e[0m'ß
+bold=$'\e[1m'
+norm=$'\e[21m'
+reset=$'\e[0m'
+
+# Specific variables
+export TARGET_DIR=/opt/MW
+export TOMCAT_USER=tomcat
+export JAVA_HOME=${TARGET_DIR}/java
+export JAVA=${JAVA_HOME}/bin/java
+export JRE_HOME=${JAVA_HOME}
+export CATALINA_BASE=${TARGET_DIR}/tomcat
+export CATALINA_HOME=${TARGET_DIR}/tomcat
+export PATH="$JAVA_HOME/bin:$HOME/.local/bin:$HOME/bin:$PATH"
+
+# User specific aliases and functions
+alias vim=vi
+alias start-tomcat='sudo /bin/systemctl start tomcat.service'
+alias stop-tomcat='sudo /bin/systemctl stop tomcat.service'
+alias restart-tomcat='sudo /bin/systemctl restart tomcat.service'
+alias status-tomcat='sudo /bin/systemctl status tomcat.service'
+alias tomcat-logs="cd /opt/MW/tomcat/logs"
+alias tomcat-certs="cd /opt/MW/certs"
+alias tomcat-conf="cd /opt/MW/tomcat/conf"
+alias tomcat-bin="cd /opt/MW/tomcat/bin"
+alias tail-catalina-out="tail -f /opt/MW/tomcat/logs/catalina.out"
+alias errors-catalina-out="grep -iE 'error\|severe' /opt/MW/tomcat/logs/catalina.out"
+
+# Change prompt to show environment
+export PS1="${red} TOMCAT ${green}\u@\h ${magenta}\W ${reset}$ "
+
+#Change directory colour to purple
+LS_COLORS=$LS_COLORS:'di=1;35:' ; export LS_COLORS
+
+
+echo
+echo "$cyan████████╗ ██████╗ ███╗   ███╗ ██████╗ █████╗ ████████╗$reset";
+echo "$cyan╚══██╔══╝██╔═══██╗████╗ ████║██╔════╝██╔══██╗╚══██╔══╝$reset";
+echo "$cyan   ██║   ██║   ██║██╔████╔██║██║     ███████║   ██║   $reset";
+echo "$cyan   ██║   ██║   ██║██║╚██╔╝██║██║     ██╔══██║   ██║   $reset";
+echo "$cyan   ██║   ╚██████╔╝██║ ╚═╝ ██║╚██████╗██║  ██║   ██║   $reset";
+echo "$cyan   ╚═╝    ╚═════╝ ╚═╝     ╚═╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   $reset";
+echo "$cyan                                                      $reset";
+echo
+echo "*** Shortkeys ***"
+echo Type \'start_tomcat\' or \'stop-tomcat\' to start or stop Tomcat
+echo Type \'restart-tomcat\' to restart Tomcat
+echo Type \'status-tomcat\' to check Tomcat\'s status
+echo Type \'tomcat-logs\' to go to the Tomcat log directory
+echo Type \'tomcat-conf\' to go to the Tomcat configuration directory
+echo Type \'tomcat-bin\' to go to the Tomcat bin directory
+echo Type \'tomcat-certs\' to go to the Certificate directory
+echo Type \'tail-catalina-out\' to go tail catalina.out
+echo Type \'errors-catalina-out\' to go grep for errors in catalina.out
+echo

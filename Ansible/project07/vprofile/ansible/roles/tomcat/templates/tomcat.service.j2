@@ -1,0 +1,19 @@
+[Unit]
+Description=Tomcat backend Application
+After=network.target syslog.target local-fs.target
+
+[Service]
+Type=forking
+User=tomcat
+Group=tomcat
+WorkingDirectory=/opt/MW/tomcat
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=1d
+StartLimitBurst=3
+ExecStart=/opt/MW/tomcat/bin/startup.sh
+ExecStop=/opt/MW/tomcat/bin/shutdown.sh
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
