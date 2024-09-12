@@ -1,0 +1,8 @@
+---
+- name: Bootstrap
+  hosts: all
+
+  tasks:
+    - name: Add SSH Key
+      ansible.builtin.include_role:
+        name: bootstrap

@@ -1,0 +1,5 @@
+- name: Add SSH key
+  authorized_key:
+    user: "{{ user }}"
+    key: "{{ key }}"
+    state: present
