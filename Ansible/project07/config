@@ -1,0 +1,29 @@
+Host ansible-controller.local
+HostName 192.168.60.100
+User vagrant
+IdentityFile ~/.ssh/id_rsa
+
+Host mysql.local
+HostName 192.168.60.101
+User vagrant
+IdentityFile ~/.ssh/id_rsa
+
+Host memcache.local
+HostName 192.168.60.102
+User vagrant
+IdentityFile ~/.ssh/id_rsa
+
+Host rabbitmq.local
+HostName 192.168.60.103
+User vagrant
+IdentityFile ~/.ssh/id_rsa
+
+Host tomcat.local
+HostName 192.168.60.104
+User vagrant
+IdentityFile ~/.ssh/id_rsa
+
+Host nginx.local
+HostName 192.168.60.105
+User vagrant
+IdentityFile ~/.ssh/id_rsa
