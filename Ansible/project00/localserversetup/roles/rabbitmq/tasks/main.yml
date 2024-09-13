@@ -12,7 +12,7 @@
   ansible.builtin.service:
     name: rabbitmq-server
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Configure RabbitMQ to accept connections
   ansible.builtin.copy:
@@ -33,6 +33,6 @@
 - name: Configure firewall for RabbitMQ
   ansible.posix.firewalld:
     port: 5672/tcp
-    permanent: yes
+    permanent: true
     state: enabled
   notify: Reload firewall
