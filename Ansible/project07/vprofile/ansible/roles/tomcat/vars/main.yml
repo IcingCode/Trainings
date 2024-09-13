@@ -19,6 +19,8 @@ basic_packages:
   - wget
   - unzip
   - curl
+  - git
+  - git-lfs
 
 tomcat_group: tomcat
 tomcat_user: tomcat
