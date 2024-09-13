@@ -1,46 +1,41 @@
 ---
-- name: Install Erlang
-  ansible.builtin.dnf:
-    name: https://github.com/rabbitmq/erlang-rpm/releases/download/v26.2.5.3/erlang-26.2.5.3-1.el9.x86_64.rpm
-    state: present
-  tags:
-    - rabbitmq
-    - erlang
+# - name: Install Erlang
+#   ansible.builtin.dnf:
+#     name: https://github.com/rabbitmq/erlang-rpm/releases/download/v26.2.5.3/erlang-26.2.5.3-1.el9.x86_64.rpm
+#     state: present
+#   tags:
+#     - rabbitmq
+#     - erlang
 
-- name: Ensure socat and logrotate are installed
-  ansible.builtin.dnf:
-    name:
-      - socat
-      - logrotate
-    state: present
-  tags:
-    - rabbitmq
-    - dependencies
-
-- name: Add RabbitMQ signing key
-  ansible.builtin.rpm_key:
-    key: https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.E7E77E9A50A91A4E.key
-    state: present
+- name: Import RabbitMQ signing keys
+  ansible.builtin.command:
+    cmd: >
+      rpm --import https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc &&
+      rpm --import https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key &&
+      rpm --import https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
   tags:
     - rabbitmq
     - repo
+    - gpgkey
 
-- name: Add RabbitMQ repository
-  ansible.builtin.yum_repository:
-    name: rabbitmq_rabbitmq-server
-    description: "RabbitMQ Repository"
-    baseurl: "https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/rpm/el/9/$basearch"
-    gpgcheck: true
-    gpgkey: https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.E7E77E9A50A91A4E.key
-    repo_gpgcheck: true
-    enabled: true
+- name: Add RabbitMQ and Erlang repository to yum.repos.d
+  ansible.builtin.template:
+    src: rabbitmq.repo.j2
+    dest: /etc/yum.repos.d/rabbitmq.repo
+    owner: root
+    group: root
+    mode: '0644'
   tags:
     - rabbitmq
     - repo
 
 - name: Install RabbitMQ server
   ansible.builtin.dnf:
-    name: rabbitmq-server
+    name: 
+      - socat
+      - logrotate
+      - erlang
+      - rabbitmq-server
     state: present
   tags:
     - rabbitmq
