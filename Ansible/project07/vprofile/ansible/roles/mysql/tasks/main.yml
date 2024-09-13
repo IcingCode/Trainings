@@ -11,12 +11,32 @@
     state: started
     enabled: true
 
-- name: Set MariaDB root password
+- name: Check if root password is set
+  ansible.builtin.command: mysqladmin -u root status
+  register: mysql_root_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Set MariaDB root password for the first time
   community.mysql.mysql_user:
     name: root
     password: "{{ mysql_root_password }}"
     login_unix_socket: /var/lib/mysql/mysql.sock
-  # Add this line to specify the Python interpreter
+  when: mysql_root_check.rc != 0
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+- name: Update MariaDB root password for localhost
+  community.mysql.mysql_user:
+    name: root
+    host: localhost
+    password: "{{ mysql_root_password }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    check_implicit_admin: true
+    state: present
+  when: mysql_root_check.rc == 0
   vars:
     ansible_python_interpreter: /usr/bin/python3
 
@@ -42,6 +62,14 @@
     src: db_backup.sql
     dest: /tmp/db_backup.sql
 
+- name: Check if database is already populated
+  community.mysql.mysql_query:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    database: accounts
+    query: SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'accounts'
+  register: db_check
+
 - name: Restore database
   community.mysql.mysql_db:
     name: accounts
@@ -49,6 +77,7 @@
     target: /tmp/db_backup.sql
     login_user: root
     login_password: "{{ mysql_root_password }}"
+  when: db_check.query_result[0][0] == 0
 
 - name: Configure firewall for MySQL
   ansible.posix.firewalld:
