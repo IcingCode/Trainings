@@ -230,7 +230,7 @@
     - "{{ CATALINA_BASE }}/webapps/host-manager/META-INF/context.xml"
     - "{{ CATALINA_BASE }}/webapps/manager/META-INF/context.xml"
     - "{{ CATALINA_BASE }}/webapps/examples/META-INF/context.xml"
-  notify: restart tomcat
+  notify: Restart tomcat
   tags:
     - config
     - security
