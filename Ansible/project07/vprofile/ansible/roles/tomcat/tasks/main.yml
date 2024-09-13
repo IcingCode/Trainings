@@ -47,13 +47,6 @@
     - setup
     - java
 
-- name: Pull Git LFS objects if the JDK tarball is an LFS pointer
-  ansible.builtin.command:
-    cmd: git lfs pull
-    chdir: "{{ playbook_dir }}"
-  tags:
-    - git-lfs
-
 - name: Copy JDK file
   ansible.builtin.copy:
     src: "jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
