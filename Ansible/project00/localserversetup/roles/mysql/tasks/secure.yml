@@ -1,0 +1,38 @@
+---
+- name: Check if MariaDB has been secured
+  ansible.builtin.stat:
+    path: /var/lib/mysql/.secured
+  register: mariadb_secured
+  tags:
+    - mariadb
+    - mariadb:secure
+
+- name: Secure MariaDB installation
+  ansible.builtin.expect:
+    command: mysql_secure_installation
+    responses:
+      (?i)enter current password: ""
+      (?i)set root password: "y"
+      (?i)new password: "{{ mariadb_root_password }}"
+      (?i)re-enter new password: "{{ mariadb_root_password }}"
+      (?i)remove anonymous users: "{{ 'y' if mariadb_remove_anonymous_users else 'n' }}"
+      (?i)disallow root login remotely: "{{ 'y' if mariadb_disallow_root_login_remotely else 'n' }}"
+      (?i)remove test database: "{{ 'y' if mariadb_remove_test_database else 'n' }}"
+      (?i)reload privilege tables: "{{ 'y' if mariadb_reload_privilege_tables else 'n' }}"
+  when: not mariadb_secured.stat.exists
+  no_log: true
+  tags:
+    - mariadb
+    - mariadb:secure
+
+- name: Create security flag file
+  ansible.builtin.file:
+    path: /var/lib/mysql/.secured
+    state: touch
+    owner: mysql
+    group: mysql
+    mode: '0600'
+  when: not mariadb_secured.stat.exists
+  tags:
+    - mariadb
+    - mariadb:secure

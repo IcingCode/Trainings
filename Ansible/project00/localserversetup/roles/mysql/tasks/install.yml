@@ -1,0 +1,30 @@
+---
+- name: Install MariaDB packages
+  ansible.builtin.yum:
+    name: "{{ mariadb_packages }}"
+    state: present
+    update_cache: true
+  tags:
+    - mariadb
+    - mariadb:install
+
+- name: Ensure MariaDB service is started and enabled
+  ansible.builtin.systemd:
+    name: "{{ mariadb_service_name }}"
+    state: started
+    enabled: true
+  tags:
+    - mariadb
+    - mariadb:install
+
+- name: Copy MariaDB configuration file
+  ansible.builtin.template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf.d/custom.cnf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart mariadb
+  tags:
+    - mariadb
+    - mariadb:config

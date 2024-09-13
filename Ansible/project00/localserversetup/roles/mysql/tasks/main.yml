@@ -1,0 +1,13 @@
+---
+- name: Include installation tasks
+  ansible.builtin.import_tasks: install.yml
+  tags:
+    - mariadb
+    - mariadb:install
+
+- name: Include secure installation tasks
+  ansible.builtin.import_tasks: secure.yml
+  tags:
+    - mariadb
+    - mariadb:secure
+  when: mariadb_secure_installation | bool
