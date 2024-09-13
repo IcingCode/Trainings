@@ -4,8 +4,14 @@
   ansible.builtin.service:
     name: rabbitmq-server
     state: restarted
+  tags:
+    - rabbitmq
+    - handler
 
 - name: Reload firewall
   ansible.builtin.service:
     name: firewalld
     state: reloaded
+  tags:
+    - rabbitmq
+    - handler
