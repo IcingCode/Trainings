@@ -23,8 +23,22 @@
     state: started
   tags: ['mysql', 'wait']
 
+- name: Create .my.cnf file for root user
+  become: true
+  ansible.builtin.copy:
+    dest: /root/.my.cnf
+    content: |
+      [client]
+      user=root
+      password="{{ mysql_root_password }}"
+    owner: root
+    group: root
+    mode: '0600'
+  tags: ['mysql', 'config']
+
 - name: Check if root password is set
-  ansible.builtin.command: mysqladmin -u root status
+  become: true
+  ansible.builtin.command: mysqladmin status
   register: mysql_root_check
   changed_when: false
   failed_when: false
@@ -36,7 +50,7 @@
   community.mysql.mysql_user:
     name: root
     password: "{{ mysql_root_password }}"
-    login_unix_socket: /var/lib/mysql/mysql.sock  # Replace with the correct path
+    host: localhost
     check_implicit_admin: true
   when: mysql_root_check.rc != 0
   tags: ['mysql', 'root_password']
@@ -47,12 +61,16 @@
     name: root
     host: localhost
     password: "{{ mysql_root_password }}"
-    login_user: root
-    login_password: "{{ mysql_root_password }}"
-    check_implicit_admin: true
     state: present
   when: mysql_root_check.rc == 0
   tags: ['mysql', 'root_password']
+
+- name: Remove .my.cnf file
+  become: true
+  ansible.builtin.file:
+    path: /root/.my.cnf
+    state: absent
+  tags: ['mysql', 'config']
 
 - name: Create 'accounts' database
   community.mysql.mysql_db:
