@@ -3,7 +3,7 @@ JAVA_BASE: "/opt/MW"
 CATALINA_HOME: "/opt/MW/tomcat"
 CATALINA_BASE: "/opt/MW/tomcat"
 TOMCAT_BASE: "/opt/MW"
-tomcat_ver: 10.1.25                          # Tomcat version to install
+tomcat_ver: 10.1.29                          # Tomcat version to install
 tomcat_v_num: 10
 jdk_version: 17
 jdk_untarred_version: 17.0.12
