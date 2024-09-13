@@ -1,5 +1,7 @@
 ---
 
+---
+
 - name: Install MariaDB server and Python MySQL client
   ansible.builtin.dnf:
     name:
@@ -15,6 +17,15 @@
     enabled: true
   tags: ['service', 'mariadb']
 
+- name: Wait for MariaDB to be ready
+  ansible.builtin.wait_for:
+    port: 3306
+    host: 127.0.0.1
+    delay: 5
+    timeout: 30
+    state: started
+  tags: ['mysql', 'wait']
+
 - name: Check if root password is set
   ansible.builtin.command: mysqladmin -u root status
   register: mysql_root_check
@@ -28,7 +39,7 @@
   community.mysql.mysql_user:
     name: root
     password: "{{ mysql_root_password }}"
-    login_unix_socket: /var/run/mysqld/mysqld.sock  # Verify the correct socket path
+    login_unix_socket: /var/lib/mysql/mysql.sock  # Replace with the correct path
     check_implicit_admin: yes
   when: mysql_root_check.rc != 0
   tags: ['mysql', 'root_password']
