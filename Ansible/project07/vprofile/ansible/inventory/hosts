@@ -1,5 +1,5 @@
 [controller]
-ansible-controller.local
+ansible-controller.local ansible_connection=local
 
 [database]
 mysql.local

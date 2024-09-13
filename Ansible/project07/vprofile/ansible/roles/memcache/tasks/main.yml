@@ -1,2 +1,49 @@
 ---
-# tasks file for memcache
+- name: Install Memcached
+  ansible.builtin.dnf:
+    name: memcached
+    state: present
+
+- name: Configure Memcached to listen on all interfaces
+  ansible.builtin.lineinfile:
+    path: /etc/sysconfig/memcached
+    regexp: '^OPTIONS='
+    line: 'OPTIONS="-l 0.0.0.0 -p 11211 -U 11111"'
+  notify: Restart Memcached
+
+- name: Configure firewall for Memcached TCP
+  ansible.posix.firewalld:
+    port: 11211/tcp
+    permanent: true
+    state: enabled
+  notify: Reload firewall
+
+- name: Configure firewall for Memcached UDP
+  ansible.posix.firewalld:
+    port: 11111/udp
+    permanent: true
+    state: enabled
+  notify: Reload firewall
+
+- name: Create Memcached service override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/memcached.service.d
+    state: directory
+    mode: '0755'
+
+- name: Create Memcached service override file
+  ansible.builtin.copy:
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/memcached -p 11211 -U 11111 -u memcached -m 64
+    dest: /etc/systemd/system/memcached.service.d/override.conf
+  notify:
+    - Reload systemd
+    - Restart Memcached
+
+- name: Start and enable Memcached service
+  ansible.builtin.service:
+    name: memcached
+    state: started
+    enabled: true

@@ -1,2 +1,31 @@
 ---
 # tasks file for common
+- name: Update package cache
+  ansible.builtin.package:
+    update_cache: yes
+
+- name: Upgrade all packages
+  ansible.builtin.package:
+    name: '*'
+    state: latest
+
+- name: Install EPEL repository
+  ansible.builtin.package:
+    name: epel-release
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install common packages
+  ansible.builtin.package:
+    name:
+      - git
+      - wget
+    state: present
+
+- name: Configure hosts file
+  ansible.builtin.template:
+    src: hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: '0644'

@@ -1,2 +1,11 @@
 ---
 # handlers file for rabbitmq
+- name: Restart RabbitMQ
+  ansible.builtin.service:
+    name: rabbitmq-server
+    state: restarted
+
+- name: Reload firewall
+  ansible.builtin.service:
+    name: firewalld
+    state: reloaded

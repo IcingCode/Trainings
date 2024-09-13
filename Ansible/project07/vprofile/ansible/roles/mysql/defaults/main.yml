@@ -1,2 +1,4 @@
 ---
 # defaults file for mysql
+mysql_root_password: admin123
+mysql_user_password: admin123

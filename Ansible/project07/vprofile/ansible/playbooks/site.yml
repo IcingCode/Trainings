@@ -1,0 +1,36 @@
+---
+- name: Apply common configuration to all hosts
+  hosts: all
+  become: true
+  roles:
+    - common
+
+- name: Configure and deploy MySQL
+  hosts: database
+  become: true
+  roles:
+    - mysql
+
+- name: Configure and deploy Memcached
+  hosts: memcache
+  become: true
+  roles:
+    - memcache
+
+- name: Configure and deploy RabbitMQ
+  hosts: rabbitmq
+  become: true
+  roles:
+    - rabbitmq
+
+- name: Configure and deploy Tomcat
+  hosts: application
+  become: true
+  roles:
+    - tomcat
+
+- name: Configure and deploy Nginx
+  hosts: web
+  become: true
+  roles:
+    - nginx

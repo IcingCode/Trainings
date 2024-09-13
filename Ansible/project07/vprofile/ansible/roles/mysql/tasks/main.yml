@@ -1,2 +1,54 @@
 ---
-# tasks file for mysql
+- name: Install MariaDB server
+  ansible.builtin.dnf:
+    name: mariadb-server
+    state: present
+
+- name: Start and enable MariaDB service
+  ansible.builtin.service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Set MariaDB root password
+  community.mysql.mysql_user:
+    name: root
+    password: "{{ mysql_root_password }}"
+    login_unix_socket: /var/lib/mysql/mysql.sock
+
+- name: Create vprofile database
+  community.mysql.mysql_db:
+    name: accounts
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Create vprofile user
+  community.mysql.mysql_user:
+    name: admin
+    password: "{{ mysql_user_password }}"
+    priv: 'accounts.*:ALL'
+    host: '%'
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Copy database dump file
+  ansible.builtin.copy:
+    src: db_backup.sql
+    dest: /tmp/db_backup.sql
+
+- name: Restore database
+  community.mysql.mysql_db:
+    name: accounts
+    state: import
+    target: /tmp/db_backup.sql
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Configure firewall for MySQL
+  ansible.posix.firewalld:
+    port: 3306/tcp
+    permanent: yes
+    state: enabled
+  notify: Reload firewall

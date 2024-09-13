@@ -1,2 +1,24 @@
 ---
 # tasks file for nginx
+- name: Install Nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Configure Nginx for vprofile
+  ansible.builtin.template:
+    src: vproapp.conf.j2
+    dest: /etc/nginx/conf.d/vproapp.conf
+  notify: Restart Nginx
+
+- name: Remove default Nginx configuration
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Restart Nginx
+
+- name: Start and enable Nginx service
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes

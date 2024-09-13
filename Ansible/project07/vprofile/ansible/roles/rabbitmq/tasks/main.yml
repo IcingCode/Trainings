@@ -1,2 +1,38 @@
----
-# tasks file for rabbitmq
+- name: Enable EPEL repository
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Install RabbitMQ server
+  ansible.builtin.dnf:
+    name: rabbitmq-server
+    state: present
+
+- name: Start and enable RabbitMQ service
+  ansible.builtin.service:
+    name: rabbitmq-server
+    state: started
+    enabled: yes
+
+- name: Configure RabbitMQ to accept connections
+  ansible.builtin.copy:
+    content: '[{rabbit, [{loopback_users, []}]}].'
+    dest: /etc/rabbitmq/rabbitmq.conf
+  notify: Restart RabbitMQ
+
+- name: Add RabbitMQ user
+  community.rabbitmq.rabbitmq_user:
+    user: test
+    password: test
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    tags: administrator
+
+- name: Configure firewall for RabbitMQ
+  ansible.posix.firewalld:
+    port: 5672/tcp
+    permanent: yes
+    state: enabled
+  notify: Reload firewall

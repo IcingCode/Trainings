@@ -1,2 +1,11 @@
 ---
 # handlers file for memcache
+- name: Restart Memcached
+  ansible.builtin.service:
+    name: memcached
+    state: restarted
+
+- name: Reload firewall
+  ansible.builtin.service:
+    name: firewalld
+    state: reloaded
