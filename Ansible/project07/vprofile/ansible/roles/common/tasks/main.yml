@@ -19,6 +19,7 @@
   ansible.builtin.package:
     name:
       - git
+      - git-lfs
       - wget
     state: present
 
