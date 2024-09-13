@@ -1,7 +1,4 @@
 ---
-
----
-
 - name: Install MariaDB server and Python MySQL client
   ansible.builtin.dnf:
     name:
