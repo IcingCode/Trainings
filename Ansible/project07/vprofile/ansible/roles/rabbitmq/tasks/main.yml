@@ -1,38 +1,73 @@
-- name: Enable EPEL repository
-  ansible.builtin.dnf:
-    name: epel-release
+- name: Add RabbitMQ signing key
+  ansible.builtin.rpm_key:
+    key: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
     state: present
+  tags:
+    - rabbitmq
+    - repo
+
+- name: Add RabbitMQ repository
+  ansible.builtin.yum_repository:
+    name: rabbitmq_rabbitmq-server
+    description: "RabbitMQ Repository"
+    baseurl: "https://packagecloud.io/rabbitmq/rabbitmq-server/el/8/$basearch"
+    gpgcheck: true
+    gpgkey: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
+    repo_gpgcheck: true
+    enabled: true
+  tags:
+    - rabbitmq
+    - repo
 
 - name: Install RabbitMQ server
   ansible.builtin.dnf:
     name: rabbitmq-server
     state: present
+  tags:
+    - rabbitmq
+    - install
 
 - name: Start and enable RabbitMQ service
   ansible.builtin.service:
     name: rabbitmq-server
     state: started
-    enabled: yes
+    enabled: true
+  tags:
+    - rabbitmq
+    - service
 
 - name: Configure RabbitMQ to accept connections
-  ansible.builtin.copy:
-    content: '[{rabbit, [{loopback_users, []}]}].'
+  ansible.builtin.template:
+    src: rabbitmq.conf.j2
     dest: /etc/rabbitmq/rabbitmq.conf
+    owner: root
+    group: root
+    mode: '0644'
   notify: Restart RabbitMQ
+  tags:
+    - rabbitmq
+    - config
 
 - name: Add RabbitMQ user
   community.rabbitmq.rabbitmq_user:
-    user: test
-    password: test
-    vhost: /
-    configure_priv: .*
-    read_priv: .*
-    write_priv: .*
-    tags: administrator
+    user: "{{ rabbitmq_user }}"
+    password: "{{ rabbitmq_password }}"
+    vhost: "{{ rabbitmq_vhost }}"
+    configure_priv: "{{ rabbitmq_configure_priv }}"
+    read_priv: "{{ rabbitmq_read_priv }}"
+    write_priv: "{{ rabbitmq_write_priv }}"
+    tags: "{{ rabbitmq_user_tags }}"
+  tags:
+    - rabbitmq
+    - user
 
 - name: Configure firewall for RabbitMQ
   ansible.posix.firewalld:
-    port: 5672/tcp
-    permanent: yes
+    port: "{{ item }}/tcp"
+    permanent: true
     state: enabled
+  loop: "{{ rabbitmq_ports }}"
   notify: Reload firewall
+  tags:
+    - rabbitmq
+    - firewall
