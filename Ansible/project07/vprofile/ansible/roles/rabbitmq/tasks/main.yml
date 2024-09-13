@@ -1,19 +1,21 @@
 ---
-- name: Add Erlang dependency repository
-  ansible.builtin.yum:
-    name: https://packages.erlang-solutions.com/erlang-solutions-2.0-1.noarch.rpm
+- name: Install Erlang
+  ansible.builtin.rpm:
+    name: https://github.com/rabbitmq/erlang-rpm/releases/download/v26.2.5.3/erlang-26.2.5.3-1.el9.x86_64.rpm
     state: present
   tags:
     - rabbitmq
     - erlang
 
-- name: Install Erlang
+- name: Ensure socat and logrotate are installed
   ansible.builtin.dnf:
-    name: erlang
+    name:
+      - socat
+      - logrotate
     state: present
   tags:
     - rabbitmq
-    - erlang
+    - dependencies
 
 - name: Add RabbitMQ signing key
   ansible.builtin.rpm_key:
