@@ -1,6 +1,23 @@
+---
+- name: Add Erlang dependency repository
+  ansible.builtin.yum:
+    name: https://packages.erlang-solutions.com/erlang-solutions-2.0-1.noarch.rpm
+    state: present
+  tags:
+    - rabbitmq
+    - erlang
+
+- name: Install Erlang
+  ansible.builtin.dnf:
+    name: erlang
+    state: present
+  tags:
+    - rabbitmq
+    - erlang
+
 - name: Add RabbitMQ signing key
   ansible.builtin.rpm_key:
-    key: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
+    key: https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.E7E77E9A50A91A4E.key
     state: present
   tags:
     - rabbitmq
@@ -10,9 +27,9 @@
   ansible.builtin.yum_repository:
     name: rabbitmq_rabbitmq-server
     description: "RabbitMQ Repository"
-    baseurl: "https://packagecloud.io/rabbitmq/rabbitmq-server/el/8/$basearch"
+    baseurl: "https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/rpm/el/9/$basearch"
     gpgcheck: true
-    gpgkey: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
+    gpgkey: https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.E7E77E9A50A91A4E.key
     repo_gpgcheck: true
     enabled: true
   tags:
@@ -35,6 +52,13 @@
   tags:
     - rabbitmq
     - service
+
+- name: Enable RabbitMQ management plugin
+  ansible.builtin.command:
+    cmd: rabbitmq-plugins enable rabbitmq_management
+  tags:
+    - rabbitmq
+    - management
 
 - name: Configure RabbitMQ to accept connections
   ansible.builtin.template:
