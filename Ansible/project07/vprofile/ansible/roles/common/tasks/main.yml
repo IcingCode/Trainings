@@ -22,10 +22,18 @@
       - wget
     state: present
 
-- name: Configure hosts file
-  ansible.builtin.template:
-    src: hosts.j2
-    dest: /etc/hosts
+- name: Append Ansible-managed hosts to /etc/hosts
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    block: |
+      # Ansible-managed hosts
+      192.168.60.100 ansible-controller.local
+      192.168.60.101 mysql.local
+      192.168.60.102 memcache.local
+      192.168.60.103 rabbitmq.local
+      192.168.60.104 tomcat.local
+      192.168.60.105 nginx.local
+    state: present
     owner: root
     group: root
     mode: '0644'
