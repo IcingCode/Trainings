@@ -1,0 +1,97 @@
+---
+- name: Create JDK directory
+  ansible.builtin.file:
+    path: "{{ JAVA_BASE }}/jdk"
+    state: directory
+    mode: '0755'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - java
+
+- name: Copy JDK file
+  ansible.builtin.copy:
+    src: "jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    dest: "/tmp/jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    remote_src: false
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0644'
+  tags:
+    - setup
+    - java
+
+- name: Untar JDK file
+  ansible.builtin.unarchive:
+    src: "/tmp/jdk-{{ jdk_version }}_linux-x64_bin.tar.gz"
+    dest: "{{ JAVA_BASE }}/jdk"
+    remote_src: true
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - java
+
+- name: Remove old symlink
+  ansible.builtin.file:
+    path: "{{ JAVA_BASE }}/java"
+    state: absent
+  tags:
+    - setup
+    - java
+
+- name: Create symlink for JDK
+  ansible.builtin.file:
+    src: "{{ JAVA_BASE }}/jdk/jdk-{{ jdk_untarred_version }}"
+    dest: "{{ JAVA_BASE }}/java"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - java
+
+- name: Download Tomcat
+  ansible.builtin.get_url:
+    url: "{{ tomcat_archive_url }}"
+    dest: "{{ tomcat_archive_dest }}"
+    mode: '0644'
+  tags:
+    - setup
+    - tomcat
+
+- name: Create Tomcat directory
+  ansible.builtin.file:
+    path: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - tomcat
+
+- name: Extract tomcat archive
+  ansible.builtin.unarchive:
+    src: "{{ tomcat_archive_dest }}"
+    dest: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    remote_src: true
+    extra_opts: "--strip-components=1"
+    creates: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}/bin"
+  tags:
+    - setup
+    - tomcat
+
+- name: Create symlink for Apache Tomcat
+  ansible.builtin.file:
+    src: "{{ TOMCAT_BASE }}/apache-tomcat-{{ tomcat_ver }}"
+    dest: "{{ TOMCAT_BASE }}/tomcat"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - setup
+    - tomcat
