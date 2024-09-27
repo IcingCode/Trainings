@@ -1,8 +1,7 @@
 ---
-
 - name: Install MariaDB server and Python MySQL client
   ansible.builtin.dnf:
-    name:
+    name: 
       - mariadb-server
       - python3-PyMySQL
     state: present
@@ -24,8 +23,21 @@
     state: started
   tags: ['mysql', 'wait']
 
+- name: Check if root password is set
+  ansible.builtin.command: mysqladmin -u root status
+  register: mysql_root_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ['mysql', 'root_password']
+
+- name: Set MariaDB root password for the first time
+  ansible.builtin.command: >
+    mysqladmin -u root password "{{ mysql_root_password }}"
+  when: mysql_root_check.rc != 0
+  tags: ['mysql', 'root_password']
+
 - name: Create .my.cnf file for root user
-  become: true
   ansible.builtin.copy:
     dest: /root/.my.cnf
     content: |
@@ -37,41 +49,15 @@
     mode: '0600'
   tags: ['mysql', 'config']
 
-- name: Check if root password is set
-  become: true
-  ansible.builtin.command: mysqladmin status
-  register: mysql_root_check
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ['mysql', 'root_password']
-
-- name: Set MariaDB root password for the first time
-  become: true
-  community.mysql.mysql_user:
-    name: root
-    password: "{{ mysql_root_password }}"
-    host: localhost
-    check_implicit_admin: true
-  when: mysql_root_check.rc != 0
-  tags: ['mysql', 'root_password']
-
 - name: Update MariaDB root password for localhost
-  become: true
   community.mysql.mysql_user:
     name: root
     host: localhost
     password: "{{ mysql_root_password }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
     state: present
-  when: mysql_root_check.rc == 0
   tags: ['mysql', 'root_password']
-
-- name: Remove .my.cnf file
-  become: true
-  ansible.builtin.file:
-    path: /root/.my.cnf
-    state: absent
-  tags: ['mysql', 'config']
 
 - name: Create 'accounts' database
   community.mysql.mysql_db:
@@ -125,3 +111,8 @@
   notify: Reload firewall
   tags: ['firewall', 'mysql']
 
+- name: Remove .my.cnf file
+  ansible.builtin.file:
+    path: /root/.my.cnf
+    state: absent
+  tags: ['mysql', 'config']
