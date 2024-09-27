@@ -1,4 +1,37 @@
 ---
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "/home/{{ tomcat_user }}/backups/tomcat_upgrades"
+    state: directory
+    mode: '0750'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - backup
+    - upgrade
+
+- name: Backup important Tomcat files
+  community.general.archive:
+    path:
+      - "{{ CATALINA_BASE }}/conf"
+      - "{{ CATALINA_BASE }}/webapps"
+      - "{{ CATALINA_BASE }}/bin/setenv.sh"
+    dest: "/home/{{ tomcat_user }}/backups/tomcat_upgrades/tomcat_backup_pre_upgrade_{{ ansible_date_time.date }}.tar.gz"
+    format: gz
+    mode: '0640'
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+  tags:
+    - backup
+    - upgrade
+
+- name: Set backup file path
+  ansible.builtin.set_fact:
+    tomcat_backup_file: "/home/{{ tomcat_user }}/backups/tomcat_upgrades/tomcat_backup_pre_upgrade_{{ ansible_date_time.date }}.tar.gz"
+  tags:
+    - backup
+    - upgrade
+
 - name: Stop Tomcat service
   ansible.builtin.systemd:
     name: tomcat
