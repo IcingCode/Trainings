@@ -46,8 +46,16 @@
 
 - name: Check current Tomcat version
   ansible.builtin.command: "{{ TOMCAT_BASE }}/tomcat/bin/version.sh"
-  register: tomcat_current_version
+  register: tomcat_version_output
   changed_when: false
+  when: tomcat_installed.stat.exists
+  tags:
+    - version
+    - upgrade
+
+- name: Extract current Tomcat version
+  ansible.builtin.set_fact:
+    tomcat_current_version: "{{ tomcat_version_output.stdout | regex_search('Server version: Apache Tomcat/([\\d.]+)', '\\1') | first }}"
   when: tomcat_installed.stat.exists
   tags:
     - version
@@ -55,7 +63,7 @@
 
 - name: Compare Tomcat versions
   ansible.builtin.set_fact:
-    upgrade_required: "{{ tomcat_current_version.stdout.split('\n')[0].split(':')[1].strip() is version(tomcat_ver, '<') }}"
+    upgrade_required: "{{ tomcat_current_version is version(tomcat_ver, '<') }}"
   when: tomcat_installed.stat.exists
   tags:
     - version
