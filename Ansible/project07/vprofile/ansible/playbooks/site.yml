@@ -4,11 +4,15 @@
   become: true
   roles:
     - common
+  tags:
+    - common-configuration
 
 - name: Configure and deploy MySQL
   hosts: database
   become: true
   roles:
+    - mysql
+  tags:
     - mysql
 
 - name: Configure and deploy Memcached
@@ -16,11 +20,15 @@
   become: true
   roles:
     - memcache
+  tags:
+    - memcached
 
 - name: Configure and deploy RabbitMQ
   hosts: rabbitmq
   become: true
   roles:
+    - rabbitmq
+  tags:
     - rabbitmq
 
 - name: Configure and deploy Tomcat
@@ -28,9 +36,13 @@
   become: true
   roles:
     - tomcat
+  tags:
+    - tomcat
 
 - name: Configure and deploy Nginx
   hosts: web
   become: true
   roles:
+    - nginx
+  tags:
     - nginx
