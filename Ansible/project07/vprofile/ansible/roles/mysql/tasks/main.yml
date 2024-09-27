@@ -31,13 +31,16 @@
   check_mode: false
   tags: ['mysql', 'root_password']
 
-- name: Set MariaDB root password for the first time
+- name: Attempt to set MariaDB root password for the first time
   ansible.builtin.command: >
     mysqladmin -u root password "{{ mysql_root_password }}"
   when: mysql_root_check.rc != 0
+  register: set_root_password
+  changed_when: set_root_password.rc == 0
+  failed_when: false
   tags: ['mysql', 'root_password']
 
-- name: Create .my.cnf file for root user
+- name: Create temporary .my.cnf file for root user
   ansible.builtin.copy:
     dest: /root/.my.cnf
     content: |
@@ -47,9 +50,10 @@
     owner: root
     group: root
     mode: '0600'
+  when: set_root_password.changed or mysql_root_check.rc == 0
   tags: ['mysql', 'config']
 
-- name: Update MariaDB root password for localhost
+- name: Update MariaDB root password
   community.mysql.mysql_user:
     name: root
     host: localhost
@@ -57,6 +61,7 @@
     login_user: root
     login_password: "{{ mysql_root_password }}"
     state: present
+    check_implicit_admin: true
   tags: ['mysql', 'root_password']
 
 - name: Create 'accounts' database
