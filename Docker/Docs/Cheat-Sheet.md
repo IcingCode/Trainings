@@ -91,3 +91,64 @@ Restore the volume with a tarball archive.
 ## Troubleshooting
 ### Networking
 `docker run --name netshoot --rm -it nicolaka/netshoot /bin/bash`
+#### Chech the ip address assigned to a container
+```bash
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container
+
+### to check all running containers
+docker ps -q | xargs -n 1 docker inspect -f '{{.Name}}: {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+```
+
+### Get container names
+```bash
+docker ps --format '{{.Names}}'
+watch -n1 "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+```
+
+### Find Containers Using the Image
+```bash
+docker ps --filter ancestor=docker.io/library/mariadb:10.11 --format '{{.Names}}'
+
+docker container ls --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+```
+
+### Check the IP of all docker networks
+```bash
+docker network ls --format "{{.Name}}" | xargs -I {} docker network inspect {} --format '{{.Name}}: {{range .IPAM.Config}}{{.Subnet}}{{end}}'
+```
+
+## Using docker inspect with Container IDs
+
+
+```bash
+docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
+```
+
+This command will output something like[4]:
+```
+/containerA - 172.17.0.4
+/containerB - 172.17.0.3
+/containerC - 172.17.0.2
+```
+
+## Alternative Method with xargs
+
+Another approach uses `xargs` to process each container individually[1]:
+
+```bash
+docker ps -q | xargs -n 1 docker inspect --format '{{ .Name }} {{range .NetworkSettings.Networks}} {{.IPAddress}}{{end}}' | sed 's#^/##'
+```
+
+## Creating Shell Functions
+
+For convenience, you can add these functions to your `.bashrc` file[4]:
+
+```bash
+docker-ips() {
+    docker inspect --format='{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
+}
+
+docker-ip() {
+    docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$@"
+}
+```
