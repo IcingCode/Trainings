@@ -1,0 +1,34 @@
+---
+# WebLogic Version Matrix - for easy upgrades
+weblogic_versions:
+  "14.1.1.0.0":
+    java_version: "17"
+    installer_name: "fmw_14.1.1.0.0_wls_lite_Disk1_1of1.zip"
+    checksum: "sha256:your-checksum-here"
+  "12.2.1.4.0":
+    java_version: "8"
+    installer_name: "fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip"
+    checksum: "sha256:your-checksum-here"
+
+java_versions:
+  "17":
+    download_url: "https://download.oracle.com/java/17/archive/jdk-17.0.9_linux-x64_bin.tar.gz"
+    checksum: "sha256:your-java-checksum-here"
+    home_path: "/opt/java/jdk-17.0.9"
+  "8":
+    download_url: "https://download.oracle.com/java/8/archive/jdk-8u391-linux-x64.tar.gz"
+    checksum: "sha256:your-java8-checksum-here"
+    home_path: "/opt/java/jdk1.8.0_391"
+
+# Required packages for AlmaLinux 9
+required_packages:
+  - unzip
+  - tar
+  - gzip
+  - libaio
+  - libnsl
+  - compat-openssl11
+  - libXtst
+  - libXi
+  - fontconfig
+  - dejavu-sans-fonts

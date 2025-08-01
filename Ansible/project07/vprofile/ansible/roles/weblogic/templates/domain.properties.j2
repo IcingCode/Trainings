@@ -1,0 +1,31 @@
+# Domain Configuration Properties
+domain.name={{ weblogic_domain_name }}
+domain.home={{ domain_home }}
+
+# Admin Server Configuration
+admin.server.name=AdminServer
+admin.server.listen.address=
+admin.server.listen.port={{ weblogic_admin_port }}
+admin.server.ssl.listen.port={{ weblogic_admin_ssl_port }}
+
+# Security Configuration
+admin.username={{ weblogic_admin_username }}
+admin.password={{ weblogic_admin_password }}
+
+# Java Configuration
+java.home={{ java_home }}
+
+# Memory Configuration
+server.mem.min={{ weblogic_memory_min }}
+server.mem.max={{ weblogic_memory_max }}
+
+# SSL Configuration
+ssl.enabled={{ weblogic_enable_ssl | lower }}
+
+# Development/Production Mode
+domain.mode=development
+
+# Oracle Paths
+oracle.base={{ oracle_base }}
+oracle.home={{ oracle_home }}
+middleware.home={{ middleware_home }}

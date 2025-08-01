@@ -1,0 +1,39 @@
+---
+- name: Check if WebLogic installer exists
+  ansible.builtin.stat:
+    path: "{{ oracle_temp }}/{{ weblogic_versions[weblogic_version].installer_name }}"
+  register: weblogic_installer
+  tags:
+    - weblogic-download-check
+
+- name: Download WebLogic installer
+  ansible.builtin.get_url:
+    url: "{{ weblogic_download_url }}"
+    dest: "{{ oracle_temp }}/{{ weblogic_versions[weblogic_version].installer_name }}"
+    checksum: "{{ weblogic_versions[weblogic_version].checksum }}"
+    mode: '0644'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  when: not weblogic_installer.stat.exists
+  tags:
+    - weblogic-download-installer
+
+- name: Create temporary extraction directory
+  ansible.builtin.file:
+    path: "{{ oracle_temp }}/weblogic_install"
+    state: directory
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    mode: '0755'
+  tags:
+    - weblogic-download-temp
+
+- name: Extract WebLogic installer
+  ansible.builtin.unarchive:
+    src: "{{ oracle_temp }}/{{ weblogic_versions[weblogic_version].installer_name }}"
+    dest: "{{ oracle_temp }}/weblogic_install"
+    remote_src: true
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  tags:
+    - weblogic-download-extract

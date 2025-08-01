@@ -1,0 +1,43 @@
+---
+- name: Include prerequisite tasks
+  ansible.builtin.include_tasks: prerequisites.yml
+  tags:
+    - weblogic
+    - prerequisites
+    - weblogic-prereq
+
+- name: Include Java installation tasks
+  ansible.builtin.include_tasks: java-install.yml
+  tags:
+    - weblogic
+    - java
+    - weblogic-java
+
+- name: Include WebLogic download tasks
+  ansible.builtin.include_tasks: weblogic-download.yml
+  tags:
+    - weblogic
+    - download
+    - weblogic-download
+
+- name: Include WebLogic installation tasks
+  ansible.builtin.include_tasks: weblogic-install.yml
+  tags:
+    - weblogic
+    - install
+    - weblogic-install
+
+- name: Include domain creation tasks
+  ansible.builtin.include_tasks: domain-creation.yml
+  when: weblogic_create_domain | bool
+  tags:
+    - weblogic
+    - domain
+    - weblogic-domain
+
+- name: Include service setup tasks
+  ansible.builtin.include_tasks: service-setup.yml
+  tags:
+    - weblogic
+    - service
+    - weblogic-service

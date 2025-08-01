@@ -1,0 +1,48 @@
+[ENGINE]
+
+#DO NOT CHANGE THIS.
+Response File Version=1.0.0.0.0
+
+[GENERIC]
+
+#Set this to true if you wish to specify a directory where latest updates and fixes are downloaded.
+SPECIFY_DOWNLOAD_LOCATION=false
+
+#Set this to true if you wish to skip software updates
+SKIP_SOFTWARE_UPDATES=true
+
+#If SKIP_SOFTWARE_UPDATES is false, you must specify a directory where the updates are downloaded.
+SOFTWARE_UPDATES_DOWNLOAD_LOCATION=
+
+#Provide the Oracle Home location. The Oracle Home directory must be empty.
+ORACLE_HOME={{ oracle_home }}
+
+#Set this variable value to the Installation Type selected
+INSTALL_TYPE={{ weblogic_install_type }}
+
+#Provide the My Oracle Support Username. If you wish to ignore Oracle Configuration Manager configuration provide empty string for user name.
+MYORACLESUPPORT_USERNAME=
+
+#Provide the My Oracle Support Password
+MYORACLESUPPORT_PASSWORD=<SECURE VALUE>
+
+#Set this to true if you wish to decline the security updates. Setting this to true and providing empty string for My Oracle Support username will ignore the Oracle Configuration Manager configuration
+DECLINE_SECURITY_UPDATES=true
+
+#Set this to true if My Oracle Support Password is specified
+SECURITY_UPDATES_VIA_MYORACLESUPPORT=false
+
+#Provide the Proxy Host
+PROXY_HOST=
+
+#Provide the Proxy Port
+PROXY_PORT=
+
+#Provide the Proxy Username
+PROXY_USER=
+
+#Provide the Proxy Password
+PROXY_PWD=<SECURE VALUE>
+
+#Type String (URL format) Indicates the OCM Repeater URL which should be of the format [scheme[Http/Https]]://[repeater host]:[repeater port]
+COLLECTOR_SUPPORTHUB_URL=

@@ -1,0 +1,59 @@
+---
+- name: Check if Java is already installed
+  ansible.builtin.stat:
+    path: "{{ java_home }}/bin/java"
+  register: java_installed
+  tags:
+    - weblogic-java-check
+
+- name: Create Java installation directory
+  ansible.builtin.file:
+    path: "{{ java_base }}"
+    state: directory
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    mode: '0755'
+  become: true
+  when: not java_installed.stat.exists
+  tags:
+    - weblogic-java-dir
+
+- name: Download Java JDK
+  ansible.builtin.get_url:
+    url: "{{ java_versions[java_version].download_url }}"
+    dest: "{{ oracle_temp }}/jdk-{{ java_version }}.tar.gz"
+    checksum: "{{ java_versions[java_version].checksum }}"
+    mode: '0644'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  when: not java_installed.stat.exists
+  tags:
+    - weblogic-java-download
+
+- name: Extract Java JDK
+  ansible.builtin.unarchive:
+    src: "{{ oracle_temp }}/jdk-{{ java_version }}.tar.gz"
+    dest: "{{ java_base }}"
+    remote_src: true
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  when: not java_installed.stat.exists
+  tags:
+    - weblogic-java-extract
+
+- name: Set Oracle environment in system profile
+  ansible.builtin.template:
+    src: oracle_env.sh.j2
+    dest: /etc/profile.d/oracle_env.sh
+    mode: '0644'
+  become: true
+  tags:
+    - weblogic-java-env
+
+- name: Clean up Java installer
+  ansible.builtin.file:
+    path: "{{ oracle_temp }}/jdk-{{ java_version }}.tar.gz"
+    state: absent
+  tags:
+    - weblogic-java-cleanup

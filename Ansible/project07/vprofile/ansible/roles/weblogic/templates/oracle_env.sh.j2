@@ -1,0 +1,40 @@
+#!/bin/bash
+# Oracle Environment Configuration
+
+# Oracle Base Configuration
+export ORACLE_BASE="{{ oracle_base }}"
+export ORACLE_HOME="{{ oracle_home }}"
+export ORACLE_HOME_OHS="{{ oracle_home_ohs }}"
+
+# Middleware Configuration
+export MW_HOME="{{ middleware_home }}"
+export MW_HOME_OHS="{{ middleware_home_ohs }}"
+export WLS_HOME="{{ wls_home }}"
+export WL_HOME="{{ wl_home }}"
+
+# Java Configuration
+export JAVA_BASE="{{ java_base }}"
+export JAVA_HOME="{{ java_home }}"
+
+# Domain Configuration
+export DOMAIN_BASE="{{ domain_base }}"
+export DOMAIN_HOME="{{ domain_home }}"
+export DOMAIN_HOME_OHS="{{ domain_home_ohs }}"
+export DOMAIN_SHARE="{{ domain_share }}"
+export DOMAIN_APP_HOME="{{ domain_app_home }}"
+
+# Node Manager
+export NODEMGR_HOME="{{ nodemgr_home }}"
+
+# Shared Resources
+export KEYSTR_SHARE="{{ keystr_share }}"
+
+# Logging and Temp
+export LOG_BASE="{{ log_base }}"
+export TEMP="{{ oracle_temp }}"
+
+# JVM Configuration
+export CONFIG_JVM_ARGS="{{ config_jvm_args }}"
+
+# Path Configuration
+export PATH="{{ oracle_home_ohs }}/oracle_common/jdk/jre/bin:{{ java_home }}/bin:$PATH"

@@ -1,0 +1,34 @@
+---
+- name: Create WebLogic systemd service file
+  ansible.builtin.template:
+    src: weblogic.service.j2
+    dest: "/etc/systemd/system/weblogic-{{ weblogic_domain_name }}.service"
+    mode: '0644'
+  become: true
+  notify: reload systemd
+  tags:
+    - weblogic-service-create
+
+- name: Enable and start WebLogic service
+  ansible.builtin.systemd:
+    name: "weblogic-{{ weblogic_domain_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+  tags:
+    - weblogic-service-start
+
+- name: Configure firewall for WebLogic ports
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - "{{ weblogic_admin_port }}"
+    - "{{ weblogic_admin_ssl_port }}"
+    - "{{ weblogic_managed_server_port }}"
+  become: true
+  tags:
+    - weblogic-service-firewall

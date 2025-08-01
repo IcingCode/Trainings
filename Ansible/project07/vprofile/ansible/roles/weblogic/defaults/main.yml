@@ -1,0 +1,46 @@
+---
+# WebLogic Installation Defaults
+
+# Version Configuration - Easy to upgrade
+weblogic_version: "14.1.1.0.0"
+java_version: "17"
+java_update_version: "0.9"
+java_build: "11"
+
+# Installation paths
+weblogic_base_dir: "/opt/oracle"
+weblogic_middleware_home: "{{ weblogic_base_dir }}/middleware"
+weblogic_domain_home: "{{ weblogic_base_dir }}/domains"
+java_home: "/opt/java/jdk-{{ java_version }}.{{ java_update_version }}"
+
+# User and Group
+weblogic_user: "oracle"
+weblogic_group: "oinstall"
+weblogic_uid: 1001
+weblogic_gid: 1001
+
+# Domain Configuration
+weblogic_domain_name: "base_domain"
+weblogic_admin_port: 7001
+weblogic_admin_ssl_port: 7002
+weblogic_managed_server_port: 8001
+
+# Security Configuration (use vault for production)
+weblogic_admin_username: "weblogic"
+weblogic_admin_password: !vault |
+  $ANSIBLE_VAULT;1.1;AES256
+  66383634366336...  # Use ansible-vault to encrypt
+
+# Download URLs (configurable for different versions)
+java_download_url: "https://download.oracle.com/java/{{ java_version }}/archive/jdk-{{ java_version }}.{{ java_update_version }}_linux-x64_bin.tar.gz"
+weblogic_download_url: "https://download.oracle.com/otn/nt/middleware/14c/fmw_{{ weblogic_version }}_wls_lite_Disk1_1of1.zip"
+
+# Installation options
+weblogic_install_type: "WebLogic Server"
+weblogic_create_domain: true
+weblogic_start_nodemanager: true
+weblogic_enable_ssl: true
+
+# System configuration
+weblogic_memory_max: "2048m"
+weblogic_memory_min: "1024m"

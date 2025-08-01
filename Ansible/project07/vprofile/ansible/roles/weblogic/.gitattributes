@@ -1,0 +1,6 @@
+files/*.tar.gz filter=lfs diff=lfs merge=lfs -text
+files/*.zip filter=lfs diff=lfs merge=lfs -text
+files/*.jar filter=lfs diff=lfs merge=lfs -text
+files/weblogic/*.zip filter=lfs diff=lfs merge=lfs -text
+files/weblogic/*.jar filter=lfs diff=lfs merge=lfs -text
+files/java/*.tar.gz filter=lfs diff=lfs merge=lfs -text

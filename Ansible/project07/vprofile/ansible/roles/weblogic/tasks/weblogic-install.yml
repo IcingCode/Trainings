@@ -1,0 +1,79 @@
+---
+- name: Create WebLogic response file from template
+  ansible.builtin.template:
+    src: response.rsp.j2
+    dest: "{{ oracle_temp }}/weblogic_response.rsp"
+    mode: '0600'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  tags:
+    - weblogic-install-response
+
+- name: Find WebLogic installer jar
+  ansible.builtin.find:
+    paths: "{{ oracle_temp }}/weblogic_install"
+    patterns: "*.jar"
+    recurse: true
+  register: weblogic_jar
+  tags:
+    - weblogic-install-find
+
+- name: Install WebLogic Server silently
+  ansible.builtin.command:
+    cmd: >
+      {{ java_home }}/bin/java -jar {{ weblogic_jar.files[0].path }}
+      -silent -responseFile {{ oracle_temp }}/weblogic_response.rsp
+    creates: "{{ oracle_home }}/wlserver"
+  become: true
+  become_user: "{{ weblogic_user }}"
+  environment:
+    JAVA_HOME: "{{ java_home }}"
+    ORACLE_BASE: "{{ oracle_base }}"
+    ORACLE_HOME: "{{ oracle_home }}"
+    TEMP: "{{ oracle_temp }}"
+  tags:
+    - weblogic-install-silent
+
+- name: Set Oracle environment variables in user profile
+  ansible.builtin.blockinfile:
+    path: "{{ oracle_base }}/.bashrc"
+    create: true
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    block: |
+      # Oracle Environment Variables
+      export ORACLE_BASE="{{ oracle_base }}"
+      export ORACLE_HOME="{{ oracle_home }}"
+      export ORACLE_HOME_OHS="{{ oracle_home_ohs }}"
+      export MW_HOME="{{ middleware_home }}"
+      export MW_HOME_OHS="{{ middleware_home_ohs }}"
+      export WLS_HOME="{{ wls_home }}"
+      export WL_HOME="{{ wl_home }}"
+      export JAVA_BASE="{{ java_base }}"
+      export JAVA_HOME="{{ java_home }}"
+      export DOMAIN_BASE="{{ domain_base }}"
+      export DOMAIN_HOME="{{ domain_home }}"
+      export DOMAIN_HOME_OHS="{{ domain_home_ohs }}"
+      export DOMAIN_SHARE="{{ domain_share }}"
+      export DOMAIN_APP_HOME="{{ domain_app_home }}"
+      export NODEMGR_HOME="{{ nodemgr_home }}"
+      export KEYSTR_SHARE="{{ keystr_share }}"
+      export LOG_BASE="{{ log_base }}"
+      export TEMP="{{ oracle_temp }}"
+      export CONFIG_JVM_ARGS="{{ config_jvm_args }}"
+      export PATH="{{ oracle_home_ohs }}/oracle_common/jdk/jre/bin:{{ java_home }}/bin:$PATH"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Oracle Environment"
+  become: true
+  tags:
+    - weblogic-install-env
+
+- name: Clean up installation files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ oracle_temp }}/weblogic_install"
+    - "{{ oracle_temp }}/weblogic_response.rsp"
+    - "{{ oracle_temp }}/{{ weblogic_versions[weblogic_version].installer_name }}"
+  tags:
+    - weblogic-install-cleanup

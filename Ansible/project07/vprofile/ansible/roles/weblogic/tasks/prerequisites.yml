@@ -1,0 +1,70 @@
+---
+- name: Ensure required packages are installed
+  ansible.builtin.dnf:
+    name: "{{ required_packages }}"
+    state: present
+  become: true
+  tags:
+    - weblogic-prereq-packages
+
+- name: Create WebLogic group
+  ansible.builtin.group:
+    name: "{{ weblogic_group }}"
+    gid: "{{ weblogic_gid }}"
+    state: present
+  become: true
+  tags:
+    - weblogic-prereq-user
+
+- name: Create WebLogic user
+  ansible.builtin.user:
+    name: "{{ weblogic_user }}"
+    uid: "{{ weblogic_uid }}"
+    group: "{{ weblogic_group }}"
+    home: "{{ oracle_base }}"
+    create_home: true
+    shell: /bin/bash
+    state: present
+  become: true
+  tags:
+    - weblogic-prereq-user
+
+- name: Create Oracle directory structure
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    mode: '0755'
+  become: true
+  loop:
+    - "{{ oracle_base }}"
+    - "{{ oracle_base }}/product"
+    - "{{ oracle_base }}/product/{{ oracle_version }}"
+    - "{{ oracle_home }}"
+    - "{{ oracle_home_ohs }}"
+    - "{{ domain_base }}"
+    - "{{ domain_share }}"
+    - "{{ nodemgr_home }}"
+    - "{{ java_base }}"
+    - "{{ log_base }}"
+    - "{{ oracle_temp }}"
+    - "{{ keystr_share }}"
+    - "{{ oracle_base }}/shared"
+    - "{{ oracle_base }}/shared/mw_domains"
+    - "{{ oracle_base }}/admin"
+  tags:
+    - weblogic-prereq-dirs
+
+- name: Set system limits for WebLogic user
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    block: |
+      {{ weblogic_user }} soft nofile 65536
+      {{ weblogic_user }} hard nofile 65536
+      {{ weblogic_user }} soft nproc 16384
+      {{ weblogic_user }} hard nproc 16384
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - WebLogic limits"
+  become: true
+  tags:
+    - weblogic-prereq-limits

@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: weblogic-install
+  author: Your Name
+  description: Install Oracle WebLogic Server on AlmaLinux 9
+  company: Your Company
+  license: MIT
+  min_ansible_version: "2.12"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - oracle
+    - weblogic
+    - middleware
+    - java
+dependencies: []

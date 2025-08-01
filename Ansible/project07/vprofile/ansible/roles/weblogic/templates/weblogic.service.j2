@@ -1,0 +1,54 @@
+[Unit]
+Description=Oracle WebLogic Server - {{ weblogic_domain_name }}
+After=network.target
+
+[Service]
+Type=forking
+User={{ weblogic_user }}
+Group={{ weblogic_group }}
+Environment=ORACLE_BASE={{ oracle_base }}
+Environment=ORACLE_HOME={{ oracle_home }}
+Environment=ORACLE_HOME_OHS={{ oracle_home_ohs }}
+Environment=MW_HOME={{ middleware_home }}
+Environment=MW_HOME_OHS={{ middleware_home_ohs }}
+Environment=WLS_HOME={{ wls_home }}
+Environment=WL_HOME={{ wl_home }}
+Environment=JAVA_BASE={{ java_base }}
+Environment=JAVA_HOME={{ java_home }}
+Environment=DOMAIN_BASE={{ domain_base }}
+Environment=DOMAIN_HOME={{ domain_home }}
+Environment=DOMAIN_HOME_OHS={{ domain_home_ohs }}
+Environment=DOMAIN_SHARE={{ domain_share }}
+Environment=DOMAIN_APP_HOME={{ domain_app_home }}
+Environment=NODEMGR_HOME={{ nodemgr_home }}
+Environment=KEYSTR_SHARE={{ keystr_share }}
+Environment=LOG_BASE={{ log_base }}
+Environment=TEMP={{ oracle_temp }}
+Environment=CONFIG_JVM_ARGS={{ config_jvm_args }}
+
+WorkingDirectory={{ domain_home }}
+
+ExecStart={{ domain_home }}/bin/startWebLogic.sh
+ExecStop={{ domain_home }}/bin/stopWebLogic.sh
+
+# Security settings
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths={{ oracle_base }} {{ log_base }}
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=16384
+
+# Restart policy
+Restart=on-failure
+RestartSec=30
+
+# Output
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=weblogic-{{ weblogic_domain_name }}
+
+[Install]
+WantedBy=multi-user.target

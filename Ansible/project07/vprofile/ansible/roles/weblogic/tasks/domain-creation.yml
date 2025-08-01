@@ -1,0 +1,70 @@
+---
+- name: Create domain properties file from template
+  ansible.builtin.template:
+    src: domain.properties.j2
+    dest: "{{ oracle_temp }}/domain.properties"
+    mode: '0600'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-domain-properties
+
+- name: Create WebLogic domain directory
+  ansible.builtin.file:
+    path: "{{ domain_home }}"
+    state: directory
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    mode: '0755'
+  become: true
+  tags:
+    - weblogic-domain-dir
+
+- name: Create WebLogic domain
+  ansible.builtin.command:
+    cmd: >
+      {{ oracle_home }}/wlserver/common/bin/wlst.sh -skipWLSModuleScanning
+      -loadProperties {{ oracle_temp }}/domain.properties
+      {{ oracle_home }}/wlserver/common/templates/wls/wls.jar
+    creates: "{{ domain_home }}/config"
+  become: true
+  become_user: "{{ weblogic_user }}"
+  environment:
+    JAVA_HOME: "{{ java_home }}"
+    ORACLE_BASE: "{{ oracle_base }}"
+    ORACLE_HOME: "{{ oracle_home }}"
+    MW_HOME: "{{ middleware_home }}"
+    WLS_HOME: "{{ wls_home }}"
+    DOMAIN_HOME: "{{ domain_home }}"
+  tags:
+    - weblogic-domain-create
+
+- name: Template custom setDomainEnv.sh
+  ansible.builtin.template:
+    src: setDomainEnv.sh.j2
+    dest: "{{ domain_home }}/bin/setDomainEnv.sh"
+    mode: '0750'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-domain-env
+
+- name: Create domain shared directory
+  ansible.builtin.file:
+    path: "{{ domain_share }}"
+    state: directory
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    mode: '0755'
+  become: true
+  tags:
+    - weblogic-domain-shared
+
+- name: Clean up domain properties file
+  ansible.builtin.file:
+    path: "{{ oracle_temp }}/domain.properties"
+    state: absent
+  tags:
+    - weblogic-domain-cleanup
