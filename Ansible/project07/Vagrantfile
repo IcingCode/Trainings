@@ -51,4 +51,9 @@ Vagrant.configure("2") do |config|
     nginx.vm.hostname = "nginx.local"
     nginx.vm.network :private_network, ip: "192.168.60.105"
   end
+  # WebLogic server
+  config.vm.define "weblogic" do |weblogic|
+    weblogic.vm.hostname = "weblogic.local"
+    weblogic.vm.network :private_network, ip: "192.168.60.106"
+  end
 end
