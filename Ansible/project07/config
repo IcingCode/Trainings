@@ -27,3 +27,8 @@ Host nginx.local
 HostName 192.168.60.105
 User vagrant
 IdentityFile ~/.ssh/id_rsa
+
+Host weblogic.local
+HostName 192.168.60.106
+User vagrant
+IdentityFile ~/.ssh/id_rsa
