@@ -46,3 +46,11 @@
     - nginx
   tags:
     - nginx
+
+- name: Configure and deploy weblogic
+  hosts: weblogic
+  become: true
+  roles:
+    - weblogic
+  tags:
+    - weblogic
