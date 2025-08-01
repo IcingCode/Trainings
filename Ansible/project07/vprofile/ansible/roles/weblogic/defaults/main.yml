@@ -27,9 +27,7 @@ weblogic_managed_server_port: 8001
 
 # Security Configuration (use vault for production)
 weblogic_admin_username: "weblogic"
-weblogic_admin_password: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  66383634366336...  # Use ansible-vault to encrypt
+weblogic_admin_password: ""
 
 # Download URLs (configurable for different versions)
 java_download_url: "https://download.oracle.com/java/{{ java_version }}/archive/jdk-{{ java_version }}.{{ java_update_version }}_linux-x64_bin.tar.gz"
