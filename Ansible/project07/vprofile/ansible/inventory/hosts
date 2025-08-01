@@ -16,6 +16,9 @@ tomcat.local
 [web]
 nginx.local
 
+[weblogic]
+weblogic.local
+
 [all:children]
 controller
 database
@@ -23,3 +26,4 @@ memcache
 rabbitmq
 application
 web
+weblogic
