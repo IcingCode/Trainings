@@ -2,3 +2,12 @@
 # defaults file for mysql
 mysql_root_password: admin123
 mysql_user_password: admin123
+# Database settings
+mysql_databases:
+  - accounts
+
+mysql_users:
+  - name: admin
+    password: "{{ mysql_user_password }}"
+    priv: 'accounts.*:ALL'
+    host: '%'
