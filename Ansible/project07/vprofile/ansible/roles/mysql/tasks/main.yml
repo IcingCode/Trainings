@@ -1,17 +1,18 @@
 ---
 - name: Install MariaDB server and Python MySQL client
   ansible.builtin.dnf:
-    name: 
+    name:
       - mariadb-server
       - python3-PyMySQL
     state: present
   tags: ['install', 'mariadb']
 
 - name: Start and enable MariaDB service
-  ansible.builtin.service:
+  ansible.builtin.systemd:
     name: mariadb
     state: started
     enabled: true
+    daemon_reload: true
   tags: ['service', 'mariadb']
 
 - name: Wait for MariaDB to be ready
@@ -23,53 +24,81 @@
     state: started
   tags: ['mysql', 'wait']
 
-- name: Check if root password is set
-  ansible.builtin.command: mysqladmin -u root status
-  register: mysql_root_check
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ['mysql', 'root_password']
+- name: Secure MariaDB installation (MariaDB 10.4+)
+  ansible.builtin.shell: |
+    mysql --user=root <<_EOF_
+    -- Set root password
+    ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password }}';
 
-- name: Attempt to set MariaDB root password for the first time
-  ansible.builtin.command: >
-    mysqladmin -u root password "{{ mysql_root_password }}"
-  when: mysql_root_check.rc != 0
-  register: set_root_password
-  changed_when: set_root_password.rc == 0
-  failed_when: false
-  tags: ['mysql', 'root_password']
+    -- Remove anonymous users
+    DELETE FROM mysql.global_priv WHERE User='';
 
-- name: Create temporary .my.cnf file for root user
+    -- Remove remote root users (keep only localhost, 127.0.0.1, ::1)
+    DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+
+    -- Remove test database
+    DROP DATABASE IF EXISTS test;
+    DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+
+    -- Reload privileges
+    FLUSH PRIVILEGES;
+    _EOF_
+  args:
+    creates: /root/.mysql_secured
+  become: true
+  register: mysql_secure_result
+  tags: ['mysql', 'security']
+
+- name: Display security setup result
+  ansible.builtin.debug:
+    var: mysql_secure_result
+  when: mysql_secure_result is defined
+  tags: ['mysql', 'debug']
+
+- name: Mark MariaDB as secured
+  ansible.builtin.file:
+    path: /root/.mysql_secured
+    state: touch
+    mode: '0600'
+  when: mysql_secure_result is succeeded
+  tags: ['mysql', 'security']
+
+- name: Create .my.cnf file for root user
   ansible.builtin.copy:
     dest: /root/.my.cnf
     content: |
       [client]
       user=root
-      password="{{ mysql_root_password }}"
+      password={{ mysql_root_password }}
+
+      [mysql]
+      user=root
+      password={{ mysql_root_password }}
+
+      [mysqldump]
+      user=root
+      password={{ mysql_root_password }}
     owner: root
     group: root
     mode: '0600'
-  when: set_root_password.changed or mysql_root_check.rc == 0
   tags: ['mysql', 'config']
 
-- name: Update MariaDB root password
-  community.mysql.mysql_user:
-    name: root
-    host: localhost
-    password: "{{ mysql_root_password }}"
-    login_user: root
-    login_password: "{{ mysql_root_password }}"
-    state: present
-    check_implicit_admin: true
-  tags: ['mysql', 'root_password']
+- name: Test root authentication
+  ansible.builtin.shell: |
+    mysql -u root -p'{{ mysql_root_password }}' -e "SELECT VERSION() AS version;"
+  register: auth_test
+  changed_when: false
+  tags: ['mysql', 'verify']
+
+- name: Display authentication test result
+  ansible.builtin.debug:
+    msg: "MySQL authentication successful: {{ auth_test.stdout }}"
+  tags: ['mysql', 'verify']
 
 - name: Create 'accounts' database
   community.mysql.mysql_db:
     name: accounts
     state: present
-    login_user: root
-    login_password: "{{ mysql_root_password }}"
   tags: ['mysql', 'database']
 
 - name: Create 'admin' user
@@ -79,45 +108,46 @@
     priv: 'accounts.*:ALL'
     host: '%'
     state: present
-    login_user: root
-    login_password: "{{ mysql_root_password }}"
   tags: ['mysql', 'user']
 
 - name: Copy database dump file
   ansible.builtin.copy:
     src: db_backup.sql
     dest: /tmp/db_backup.sql
+    mode: '0644'
   tags: ['mysql', 'database']
 
 - name: Check if database is already populated
-  community.mysql.mysql_query:
-    login_user: root
-    login_password: "{{ mysql_root_password }}"
-    login_db: accounts
-    query: "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = 'accounts';"
-  register: db_check
+  ansible.builtin.shell: |
+    TABLE_COUNT=$(mysql -u root -p'{{ mysql_root_password }}' accounts -e "SHOW TABLES;" 2>/dev/null | wc -l)
+    echo $TABLE_COUNT
+  register: table_count_check
+  changed_when: false
   tags: ['mysql', 'database']
 
-- name: Restore database
-  community.mysql.mysql_db:
-    name: accounts
-    state: import
-    target: /tmp/db_backup.sql
-    login_user: root
-    login_password: "{{ mysql_root_password }}"
-  when: db_check.query_result[0]['count'] == 0
+- name: Import database if empty
+  ansible.builtin.shell: |
+    mysql -u root -p'{{ mysql_root_password }}' accounts < /tmp/db_backup.sql
+  when: table_count_check.stdout | int == 0
+  register: import_result
   tags: ['mysql', 'database']
 
-- name: Configure firewall for MySQL
-  ansible.posix.firewalld:
-    port: 3306/tcp
-    permanent: true
-    state: enabled
-  notify: Reload firewall
-  tags: ['firewall', 'mysql']
+- name: Display import result
+  ansible.builtin.debug:
+    msg: "Database imported successfully"
+  when: import_result is succeeded and import_result is changed
+  tags: ['mysql', 'database']
 
-- name: Remove .my.cnf file
+# - name: Configure firewall for MySQL
+#   ansible.posix.firewalld:
+#     port: 3306/tcp
+#     permanent: true
+#     state: enabled
+#     immediate: true
+#   tags: ['firewall', 'mysql']
+
+- name: Clean up temporary files
   ansible.builtin.file:
-    path: /root/.my.cnf
+    path: /tmp/db_backup.sql
     state: absent
-  tags: ['mysql', 'config']
+  tags: ['mysql', 'cleanup']
