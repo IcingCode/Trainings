@@ -4,16 +4,18 @@ weblogic_versions:
   "14.1.1.0.0":
     java_version: "17"
     installer_name: "fmw_14.1.1.0.0_wls_lite_Disk1_1of1.zip"
-    checksum: "sha256:your-checksum-here"
+    checksum: "sha256:9e9fe0264e38c34ccaef47a262474aa94bf169af0d06b202f2630eaae648ae09"
   "12.2.1.4.0":
     java_version: "8"
     installer_name: "fmw_12.2.1.4.0_wls_lite_Disk1_1of1.zip"
     checksum: "sha256:your-checksum-here"
 
+weblogic_skip_checksum: false
+
 java_versions:
   "17":
     download_url: "https://download.oracle.com/java/17/archive/jdk-17.0.9_linux-x64_bin.tar.gz"
-    checksum: "sha256:your-java-checksum-here"
+    checksum: "sha256:ad45ac97b3bc65497376f98ee276f84f4ab55ef2f62ab7f82ac0013e5b17744a"
     home_path: "/opt/java/jdk-17.0.9"
   "8":
     download_url: "https://download.oracle.com/java/8/archive/jdk-8u391-linux-x64.tar.gz"

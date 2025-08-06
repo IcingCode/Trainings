@@ -41,3 +41,12 @@
     - weblogic
     - service
     - weblogic-service
+
+- name: Include bashrc setup tasks
+  ansible.builtin.include_tasks: bashrc-setup.yml
+  when: weblogic_deploy_bashrc | default(true) | bool
+  tags:
+    - weblogic
+    - bashrc
+    - weblogic-bashrc
+    - weblogic-management

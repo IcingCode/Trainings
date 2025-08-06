@@ -1,4 +1,112 @@
 ---
+- name: Gather system facts for prerequisite checks
+  ansible.builtin.setup:
+    gather_subset: hardware
+  tags:
+    - weblogic-prereq-check
+
+- name: Create swap space if needed
+  block:
+    - name: Check if swap file already exists
+      ansible.builtin.stat:
+        path: /swapfile
+      register: swapfile_stat
+
+    - name: Create swap file
+      ansible.builtin.command:
+        cmd: fallocate -l 1G /swapfile
+        creates: /swapfile
+      become: true
+      when: not swapfile_stat.stat.exists
+
+    - name: Set swap file permissions
+      ansible.builtin.file:
+        path: /swapfile
+        mode: '0600'
+        owner: root
+        group: root
+      become: true
+      when: not swapfile_stat.stat.exists
+
+    - name: Format swap file
+      ansible.builtin.command:
+        cmd: mkswap /swapfile
+      become: true
+      register: mkswap_result
+      when: not swapfile_stat.stat.exists
+
+    - name: Enable swap file
+      ansible.builtin.command:
+        cmd: swapon /swapfile
+      become: true
+      when: 
+        - not swapfile_stat.stat.exists
+        - mkswap_result is succeeded
+
+    - name: Add swap to fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: '/swapfile none swap sw 0 0'
+        state: present
+      become: true
+      when: not swapfile_stat.stat.exists
+
+    - name: Refresh system facts after swap creation
+      ansible.builtin.setup:
+        gather_subset: hardware
+      when: not swapfile_stat.stat.exists
+  when: ansible_swaptotal_mb < 512
+  tags:
+    - weblogic-prereq-swap
+
+- name: Verify system prerequisites after swap setup
+  block:
+    - name: Check swap space requirement
+      ansible.builtin.debug:
+        msg: "Swap space available: {{ ansible_swaptotal_mb }}MB"
+
+    - name: Fail if swap space is still insufficient
+      ansible.builtin.fail:
+        msg: "Insufficient swap space. Found {{ ansible_swaptotal_mb }}MB, required 512MB minimum"
+      when: ansible_swaptotal_mb < 512
+
+    - name: Check temp space
+      ansible.builtin.shell: |
+        df {{ oracle_temp }} --output=avail --block-size=1M | tail -1
+      register: temp_space_check
+      changed_when: false
+
+    - name: Verify temp space requirement
+      ansible.builtin.fail:
+        msg: "Insufficient temp space. Found {{ temp_space_check.stdout }}MB, required 300MB minimum"
+      when: temp_space_check.stdout | int < 300
+  tags:
+    - weblogic-prereq-check
+
+- name: Create Oracle inventory directory
+  ansible.builtin.file:
+    path: "{{ oracle_base }}/oraInventory"
+    state: directory
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    mode: '0755'
+  become: true
+  tags:
+    - weblogic-inventory-setup
+
+- name: Create oraInst.loc file
+  ansible.builtin.copy:
+    content: |
+      inventory_loc={{ oracle_base }}/oraInventory
+      inst_group={{ weblogic_group }}
+    dest: /etc/oraInst.loc
+    owner: root
+    group: "{{ weblogic_group }}"
+    mode: '0644'
+  become: true
+  tags:
+    - weblogic-inventory-setup
+    
 - name: Create WebLogic response file from template
   ansible.builtin.template:
     src: response.rsp.j2

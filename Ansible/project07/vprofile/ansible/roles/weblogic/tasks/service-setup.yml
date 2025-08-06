@@ -1,23 +1,124 @@
 ---
-- name: Create WebLogic systemd service file
+- name: Create WebLogic AdminServer security directory
+  ansible.builtin.file:
+    path: "{{ domain_home }}/servers/AdminServer/security"
+    state: directory
+    mode: '0750'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-service-security
+
+- name: Create WebLogic boot properties
+  ansible.builtin.template:
+    src: boot.properties.j2
+    dest: "{{ domain_home }}/servers/AdminServer/security/boot.properties"
+    mode: '0600'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-service-boot-properties
+
+- name: Create WebLogic logs directory
+  ansible.builtin.file:
+    path: "{{ domain_home }}/logs"
+    state: directory
+    mode: '0755'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-service-logs
+
+- name: Create WebLogic daemon startup script
+  ansible.builtin.template:
+    src: weblogic-daemon-start.sh.j2
+    dest: "{{ domain_home }}/bin/daemon-start.sh"
+    mode: '0750'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-service-startup-script
+
+- name: Create WebLogic daemon stop script
+  ansible.builtin.template:
+    src: weblogic-daemon-stop.sh.j2
+    dest: "{{ domain_home }}/bin/daemon-stop.sh"
+    mode: '0750'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-service-stop-script
+
+- name: Install python3-firewall package for firewalld module
+  ansible.builtin.package:
+    name: python3-firewall
+    state: present
+  become: true
+  tags:
+    - weblogic-service-firewall-deps
+
+- name: Create systemd service file for WebLogic
   ansible.builtin.template:
     src: weblogic.service.j2
     dest: "/etc/systemd/system/weblogic-{{ weblogic_domain_name }}.service"
     mode: '0644'
   become: true
-  notify: reload systemd
+  notify: reload systemd daemon
   tags:
-    - weblogic-service-create
+    - weblogic-service-systemd
 
-- name: Enable and start WebLogic service
+- name: Reload systemd daemon
   ansible.builtin.systemd:
-    name: "weblogic-{{ weblogic_domain_name }}"
-    enabled: true
-    state: started
     daemon_reload: true
   become: true
   tags:
+    - weblogic-service-reload
+
+# - name: Enable and start WebLogic service
+#   ansible.builtin.systemd:
+#     name: "weblogic-{{ weblogic_domain_name }}"
+#     enabled: true
+#     state: started
+#   become: true
+#   tags:
+#     - weblogic-service-start
+
+- name: Start WebLogic directly using the working daemon script
+  ansible.builtin.shell: |
+    cd {{ domain_home }}
+    ./bin/daemon-start.sh
+  become: true
+  become_user: "{{ weblogic_user }}"
+  register: weblogic_direct_start
+  tags:
     - weblogic-service-start
+
+- name: Wait for WebLogic AdminServer to be fully started
+  ansible.builtin.wait_for:
+    port: "{{ weblogic_admin_port }}"
+    host: "{{ ansible_default_ipv4.address }}"
+    delay: 60
+    timeout: 900
+    msg: "WebLogic AdminServer failed to start within 15 minutes"
+  tags:
+    - weblogic-service-validate
+
+- name: Verify WebLogic console accessibility
+  ansible.builtin.uri:
+    url: "http://{{ ansible_default_ipv4.address }}:{{ weblogic_admin_port }}/console"
+    method: GET
+    timeout: 30
+    status_code: [200, 302, 401]
+  register: console_check
+  retries: 10
+  delay: 30
+  tags:
+    - weblogic-service-console-check
 
 - name: Configure firewall for WebLogic ports
   ansible.posix.firewalld:
@@ -28,7 +129,24 @@
   loop:
     - "{{ weblogic_admin_port }}"
     - "{{ weblogic_admin_ssl_port }}"
-    - "{{ weblogic_managed_server_port }}"
+    - "{{ weblogic_managed_server_port | default('8001') }}"
   become: true
   tags:
     - weblogic-service-firewall
+
+- name: Display WebLogic console information
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      WebLogic AdminServer Successfully Started!
+      ========================================
+      Console URL: http://{{ ansible_default_ipv4.address }}:{{ weblogic_admin_port }}/console
+      Console Status: {{ console_check.status | default('Unknown') }}
+      Admin Username: {{ weblogic_admin_username }}
+      
+      Alternative URLs:
+      - HTTPS: https://{{ ansible_default_ipv4.address }}:{{ weblogic_admin_ssl_port }}/console
+      - Local: http://127.0.0.1:{{ weblogic_admin_port }}/console
+      ========================================
+  tags:
+    - weblogic-service-console-check

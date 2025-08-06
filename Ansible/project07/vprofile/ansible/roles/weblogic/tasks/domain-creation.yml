@@ -10,6 +10,17 @@
   tags:
     - weblogic-domain-properties
 
+- name: Create WLST domain creation script
+  ansible.builtin.template:
+    src: create_domain.py.j2
+    dest: "{{ oracle_temp }}/create_domain.py"
+    mode: '0600'
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+  become: true
+  tags:
+    - weblogic-domain-script
+
 - name: Create WebLogic domain directory
   ansible.builtin.file:
     path: "{{ domain_home }}"
@@ -21,12 +32,23 @@
   tags:
     - weblogic-domain-dir
 
-- name: Create WebLogic domain
+- name: Verify WebLogic template exists
+  ansible.builtin.stat:
+    path: "{{ oracle_home }}/wlserver/common/templates/wls/wls.jar"
+  register: wls_template_stat
+  tags:
+    - weblogic-domain-verify
+
+- name: Fail if WebLogic template does not exist
+  ansible.builtin.fail:
+    msg: "WebLogic template not found at {{ oracle_home }}/wlserver/common/templates/wls/wls.jar"
+  when: not wls_template_stat.stat.exists
+  tags:
+    - weblogic-domain-verify
+
+- name: Create WebLogic domain using WLST script
   ansible.builtin.command:
-    cmd: >
-      {{ oracle_home }}/wlserver/common/bin/wlst.sh -skipWLSModuleScanning
-      -loadProperties {{ oracle_temp }}/domain.properties
-      {{ oracle_home }}/wlserver/common/templates/wls/wls.jar
+    cmd: "{{ oracle_home }}/wlserver/common/bin/wlst.sh {{ oracle_temp }}/create_domain.py"
     creates: "{{ domain_home }}/config"
   become: true
   become_user: "{{ weblogic_user }}"
@@ -37,8 +59,37 @@
     MW_HOME: "{{ middleware_home }}"
     WLS_HOME: "{{ wls_home }}"
     DOMAIN_HOME: "{{ domain_home }}"
+    LC_ALL: "en_US.UTF-8"
+    LANG: "en_US.UTF-8"
+    USER_MEM_ARGS: "-Xms{{ weblogic_memory_min }} -Xmx{{ weblogic_memory_max }}"
+  register: domain_creation_result
+  failed_when: domain_creation_result.rc != 0
   tags:
     - weblogic-domain-create
+
+- name: Display domain creation output on failure
+  ansible.builtin.debug:
+    msg: |
+      Domain creation failed:
+      stdout: {{ domain_creation_result.stdout }}
+      stderr: {{ domain_creation_result.stderr }}
+  when: domain_creation_result.rc != 0
+  tags:
+    - weblogic-domain-create
+
+- name: Verify domain creation
+  ansible.builtin.stat:
+    path: "{{ domain_home }}/config/config.xml"
+  register: domain_config_stat
+  tags:
+    - weblogic-domain-verify
+
+- name: Fail if domain was not created successfully
+  ansible.builtin.fail:
+    msg: "Domain creation failed - config.xml not found"
+  when: not domain_config_stat.stat.exists
+  tags:
+    - weblogic-domain-verify
 
 - name: Template custom setDomainEnv.sh
   ansible.builtin.template:
@@ -59,12 +110,26 @@
     group: "{{ weblogic_group }}"
     mode: '0755'
   become: true
+  when: domain_share is defined
   tags:
     - weblogic-domain-shared
 
-- name: Clean up domain properties file
+- name: Set proper ownership for domain directory
   ansible.builtin.file:
-    path: "{{ oracle_temp }}/domain.properties"
+    path: "{{ domain_home }}"
+    owner: "{{ weblogic_user }}"
+    group: "{{ weblogic_group }}"
+    recurse: true
+  become: true
+  tags:
+    - weblogic-domain-permissions
+
+- name: Clean up temporary files
+  ansible.builtin.file:
+    path: "{{ item }}"
     state: absent
+  loop:
+    - "{{ oracle_temp }}/domain.properties"
+    - "{{ oracle_temp }}/create_domain.py"
   tags:
     - weblogic-domain-cleanup

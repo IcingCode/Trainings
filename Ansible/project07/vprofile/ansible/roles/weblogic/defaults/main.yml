@@ -1,17 +1,49 @@
 ---
-# WebLogic Installation Defaults
+# WebLogic Installation Defaults with Oracle Structure
 
 # Version Configuration - Easy to upgrade
 weblogic_version: "14.1.1.0.0"
+oracle_version: "14c"
 java_version: "17"
 java_update_version: "0.9"
 java_build: "11"
+jdk_version: "jdk-17.0.9"
 
-# Installation paths
-weblogic_base_dir: "/opt/oracle"
-weblogic_middleware_home: "{{ weblogic_base_dir }}/middleware"
-weblogic_domain_home: "{{ weblogic_base_dir }}/domains"
-java_home: "/opt/java/jdk-{{ java_version }}.{{ java_update_version }}"
+# Oracle Base Structure
+oracle_base: "/opt/app/oracle"
+oracle_home: "{{ oracle_base }}/product/{{ oracle_version }}/fmw"
+oracle_home_ohs: "{{ oracle_base }}/product/{{ oracle_version }}/fmwohs"
+middleware_home: "{{ oracle_home }}"
+middleware_home_ohs: "{{ oracle_home_ohs }}"
+
+# Domain Configuration
+domain_base: "{{ oracle_base }}/admin/mw_domains"
+domain_name: "{{ weblogic_domain_name }}"
+domain_home: "{{ domain_base }}/{{ domain_name }}"
+domain_home_ohs: "{{ domain_base }}/WT01_DOMAIN"
+domain_share: "{{ oracle_base }}/shared/mw_domains/{{ domain_name }}"
+domain_app_home: "{{ domain_home }}/applications"
+
+# Node Manager
+nodemgr_home: "{{ oracle_base }}/admin/nodemanager"
+
+# Java Configuration
+java_base: "{{ oracle_base }}/product/{{ oracle_version }}/fmwjava"
+java_home: "{{ java_base }}/{{ jdk_version }}"
+wls_home: "{{ middleware_home }}/wlserver"
+wl_home: "{{ wls_home }}"
+
+# Shared Resources
+keystr_share: "{{ oracle_base }}/shared/keystores"
+
+# Logging
+log_base: "/opt/logs"
+oracle_temp: "{{ oracle_base }}/tmp"
+
+# Legacy paths for backward compatibility
+weblogic_base_dir: "{{ oracle_base }}"
+weblogic_middleware_home: "{{ middleware_home }}"
+weblogic_domain_home: "{{ domain_base }}"
 
 # User and Group
 weblogic_user: "oracle"
@@ -27,11 +59,14 @@ weblogic_managed_server_port: 8001
 
 # Security Configuration (use vault for production)
 weblogic_admin_username: "weblogic"
-weblogic_admin_password: ""
+weblogic_admin_password: "SuperSecurePassword123!"
+
+# JVM Configuration
+config_jvm_args: "-Djava.security.egd=file:/dev/./random"
 
 # Download URLs (configurable for different versions)
 java_download_url: "https://download.oracle.com/java/{{ java_version }}/archive/jdk-{{ java_version }}.{{ java_update_version }}_linux-x64_bin.tar.gz"
-weblogic_download_url: "https://download.oracle.com/otn/nt/middleware/14c/fmw_{{ weblogic_version }}_wls_lite_Disk1_1of1.zip"
+weblogic_download_url: "https://download.oracle.com/otn/nt/middleware/{{ oracle_version }}/fmw_{{ weblogic_version }}_wls_lite_Disk1_1of1.zip"
 
 # Installation options
 weblogic_install_type: "WebLogic Server"
@@ -42,3 +77,8 @@ weblogic_enable_ssl: true
 # System configuration
 weblogic_memory_max: "2048m"
 weblogic_memory_min: "1024m"
+
+# WebLogic Management .bashrc Configuration
+weblogic_deploy_bashrc: true
+weblogic_bashrc_show_welcome: true
+weblogic_bashrc_backup_existing: true
