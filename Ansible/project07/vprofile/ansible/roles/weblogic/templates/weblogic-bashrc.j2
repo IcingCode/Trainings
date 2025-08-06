@@ -145,7 +145,7 @@ EOF
 # WebLogic Service Management
 function wls_start() {
     echo -e "${BGREEN}🚀 Starting WebLogic AdminServer ({{ weblogic_domain_name }})...${RESET}"
-    sudo systemctl start weblogic-{{ weblogic_domain_name }}.service
+    {{ domain_home }}/bin/daemon-stop.sh
     echo -e "${YELLOW}⏳ Waiting for startup to complete...${RESET}"
     sleep 10
     wls_status
