@@ -96,7 +96,7 @@
 
 - name: Copy tomcat bashrc file
   ansible.builtin.template:
-    src: templates/bashrc.j2
+    src: templates/tomcat.bashrc.j2
     dest: "/home/{{ tomcat_user }}/.bashrc"
     owner: "{{ tomcat_user }}"
     group: "{{ tomcat_user }}"
@@ -104,7 +104,8 @@
   tags:
     - config
     - bashrc
-
+    - tomcat
+    
 - name: Copy tomcat service file
   ansible.builtin.template:
     src: templates/tomcat.service.j2
