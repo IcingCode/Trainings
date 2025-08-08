@@ -81,26 +81,32 @@ export PATH="${JAVA_HOME}/bin:${CATALINA_HOME}/bin:${PATH}"
 # PROMPT WITH TOMCAT STATUS
 # ==================================================================================
 tomcat_status_prompt() {
-  local status="UNKNOWN"
+  local status="STOPPED"
   local color="${RED}"
+  
+  # Check if systemd service is active first
   if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet tomcat 2>/dev/null; then
-    # Basic readiness check by port
-    if ss -tlnp 2>/dev/null | grep -qE ":(?:${TOMCAT_HTTP_PORT}|${TOMCAT_HTTPS_PORT}).*java"; then
+    # Use ss to check if HTTP port is listening
+    if ss -tln 2>/dev/null | grep -q ":${TOMCAT_HTTP_PORT} "; then
       status="RUNNING"
       color="${GREEN}"
     else
-      status="STARTING"
-      color="${YELLOW}"
+      # Additional check for any Java process on Tomcat ports
+      if ss -tlnp 2>/dev/null | grep -E ":${TOMCAT_HTTP_PORT}.*java" >/dev/null 2>&1; then
+        status="RUNNING"
+        color="${GREEN}"
+      else
+        status="STARTING"
+        color="${YELLOW}"
+      fi
     fi
-  else
-    status="STOPPED"
-    color="${RED}"
   fi
+  
   echo -e "${color}[TOMCAT:${status}]${RESET}"
 }
 
-# Custom PS1 with Tomcat status
-export PS1="\n${BCYAN}╭─${RESET} ${BGREEN}\u${RESET}@${BBLUE}\h${RESET} ${BYELLOW}\w${RESET} $(tomcat_status_prompt)\n${BCYAN}╰─${RESET} ${BWHITE}\$${RESET} "
+# Escape command substitution for dynamic prompt
+export PS1="\n${BCYAN}╭─${RESET} ${BGREEN}\u${RESET}@${BBLUE}\h${RESET} ${BYELLOW}\w${RESET} \$(tomcat_status_prompt)\n${BCYAN}╰─${RESET} ${BWHITE}\$${RESET} "
 
 # ==================================================================================
 # ASCII ART WELCOME MESSAGE
@@ -177,6 +183,8 @@ t_restart() {
 t_status() {
   echo -e "${BOLD}📊 Tomcat Status${RESET}"
   echo -e "${CYAN}══════════════════════════════════════${RESET}"
+  
+  # SystemD Service Status
   if command -v systemctl >/dev/null 2>&1; then
     if systemctl is-active --quiet tomcat 2>/dev/null; then
       echo -e "${GREEN}✅ SystemD Service: ${BOLD}ACTIVE${RESET}"
@@ -184,6 +192,8 @@ t_status() {
       echo -e "${YELLOW}ℹ️  SystemD Service: ${BOLD}INACTIVE${RESET}"
     fi
   fi
+  
+  # Java Process Status
   local jcount
   jcount=$(ps aux | grep -E "org\.apache\.catalina\.startup\.Bootstrap" | grep -v grep | wc -l)
   if [ "${jcount}" -gt 0 ]; then
@@ -192,20 +202,25 @@ t_status() {
   else
     echo -e "${RED}❌ Java Process: ${BOLD}NOT RUNNING${RESET}"
   fi
-  if ss -lntp 2>/dev/null | grep -q ":${TOMCAT_HTTP_PORT}"; then
+  
+  # HTTP Port Status using ss
+  if ss -tln 2>/dev/null | grep -q ":${TOMCAT_HTTP_PORT} "; then
     echo -e "${GREEN}✅ HTTP Port ${TOMCAT_HTTP_PORT}: ${BOLD}LISTENING${RESET}"
     local ip; ip=$(hostname -I | awk '{print $1}')
     [ -n "$ip" ] && echo -e "${GREEN}🌐 URL: ${BOLD}http://${ip}:${TOMCAT_HTTP_PORT}/${RESET}"
   else
     echo -e "${YELLOW}⚠️  HTTP Port ${TOMCAT_HTTP_PORT}: ${BOLD}NOT LISTENING${RESET}"
   fi
-  if ss -lntp 2>/dev/null | grep -q ":${TOMCAT_HTTPS_PORT}"; then
+  
+  # HTTPS Port Status using ss
+  if ss -tln 2>/dev/null | grep -q ":${TOMCAT_HTTPS_PORT} "; then
     echo -e "${GREEN}✅ HTTPS Port ${TOMCAT_HTTPS_PORT}: ${BOLD}LISTENING${RESET}"
     local ip; ip=$(hostname -I | awk '{print $1}')
     [ -n "$ip" ] && echo -e "${GREEN}🔒 URL: ${BOLD}https://${ip}:${TOMCAT_HTTPS_PORT}/${RESET}"
   else
     echo -e "${YELLOW}ℹ️  HTTPS Port ${TOMCAT_HTTPS_PORT}: ${BOLD}NOT LISTENING${RESET}"
   fi
+  
   echo -e "${CYAN}══════════════════════════════════════${RESET}"
 }
 
@@ -224,11 +239,33 @@ t_logs() {
 t_ports() {
   echo -e "${BCYAN}🔌 Tomcat Network Ports${RESET}"
   echo -e "${CYAN}════════════════════════${RESET}"
-  if command -v netstat >/dev/null 2>&1; then
-    netstat -tlnp 2>/dev/null | grep -E ":(?:${TOMCAT_HTTP_PORT}|${TOMCAT_HTTPS_PORT}).*java" || echo -e "${YELLOW}No Tomcat ports found via netstat${RESET}"
+  echo -e "${BOLD}Active Tomcat Ports:${RESET}"
+  
+  # Check for HTTP port
+  if ss -tlnp 2>/dev/null | grep ":${TOMCAT_HTTP_PORT} " >/dev/null; then
+    local http_info=$(ss -tlnp 2>/dev/null | grep ":${TOMCAT_HTTP_PORT} " | head -1)
+    echo -e "${GREEN}  📡 HTTP Port ${TOMCAT_HTTP_PORT}: LISTENING${RESET}"
+    echo -e "${DIM}     ${http_info}${RESET}"
   else
-    ss -lntp 2>/dev/null | grep -E ":(?:${TOMCAT_HTTP_PORT}|${TOMCAT_HTTPS_PORT}).*java" || echo -e "${YELLOW}No Tomcat ports found via ss${RESET}"
+    echo -e "${YELLOW}  📡 HTTP Port ${TOMCAT_HTTP_PORT}: NOT LISTENING${RESET}"
   fi
+  
+  # Check for HTTPS port
+  if ss -tlnp 2>/dev/null | grep ":${TOMCAT_HTTPS_PORT} " >/dev/null; then
+    local https_info=$(ss -tlnp 2>/dev/null | grep ":${TOMCAT_HTTPS_PORT} " | head -1)
+    echo -e "${BLUE}  🔒 HTTPS Port ${TOMCAT_HTTPS_PORT}: LISTENING${RESET}"
+    echo -e "${DIM}     ${https_info}${RESET}"
+  else
+    echo -e "${YELLOW}  🔒 HTTPS Port ${TOMCAT_HTTPS_PORT}: NOT LISTENING${RESET}"
+  fi
+  
+  # Show all Java-related ports
+  echo -e "\n${BOLD}All Java Network Connections:${RESET}"
+  ss -tlnp 2>/dev/null | grep java | while read line; do
+    local port=$(echo "$line" | awk '{print $4}' | awk -F':' '{print $NF}')
+    echo -e "${CYAN}  🔌 Port ${port}: ${line}${RESET}"
+  done || echo -e "${YELLOW}  No Java network connections found${RESET}"
+  
   echo -e "${CYAN}════════════════════════${RESET}"
 }
 
